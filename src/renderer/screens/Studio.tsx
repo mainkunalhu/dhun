@@ -367,7 +367,7 @@ export function Studio({
         modelId: selectedModel.id,
         voiceId: selectedVoice.id,
         language,
-        speed: settings.speed,
+        speed: 1,
         script,
       });
       await refreshJobs();
@@ -526,8 +526,8 @@ export function Studio({
                 </div>
               ) : null}
 
-              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <Card className="flex flex-col gap-3">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                <Card className="flex h-full flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
                     <SectionLabel>Script</SectionLabel>
                     <span className="text-xs tabular-nums text-ink-soft">
@@ -564,7 +564,7 @@ export function Studio({
                   </div>
                 </Card>
 
-                <Card className="flex flex-col gap-4">
+                <Card className="flex h-full flex-col gap-4">
                   <SectionLabel>Render settings</SectionLabel>
 
                   <Field label="Model">
@@ -630,38 +630,24 @@ export function Studio({
                     </Select>
                   </Field>
 
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-sm text-ink">
-                      <span>Speed</span>
-                      <span className="tabular-nums text-ink-soft">
-                        {settings.speed.toFixed(2)}×
-                      </span>
+                  <div className="mt-auto flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-xs text-ink-soft">
+                      <span>Runs locally</span>
+                      <span className="font-mono">WAV</span>
                     </div>
-                    <input
-                      type="range"
-                      min={0.5}
-                      max={1.5}
-                      step={0.05}
-                      value={settings.speed}
-                      onChange={(event) =>
-                        updateSettings({ speed: Number(event.target.value) })
-                      }
-                      aria-label="Speed"
-                      className="h-1.5 w-full cursor-pointer accent-accent"
-                    />
+
+                    <Button
+                      block
+                      onClick={() => void generate()}
+                      disabled={!canGenerate}
+                    >
+                      {generating ? 'Adding to queue…' : 'Generate'}
+                    </Button>
+
+                    {actionError ? (
+                      <p className="text-xs text-danger">{actionError}</p>
+                    ) : null}
                   </div>
-
-                  <Button
-                    block
-                    onClick={() => void generate()}
-                    disabled={!canGenerate}
-                  >
-                    {generating ? 'Adding to queue…' : 'Generate'}
-                  </Button>
-
-                  {actionError ? (
-                    <p className="text-xs text-danger">{actionError}</p>
-                  ) : null}
                 </Card>
               </div>
 
@@ -734,8 +720,7 @@ export function Studio({
                               <p className="mt-0.5 truncate text-xs text-ink-soft">
                                 {voice?.name ?? job.voiceId} ·{' '}
                                 {model?.name ?? job.modelId} ·{' '}
-                                {job.language.toUpperCase()} ·{' '}
-                                {job.speed.toFixed(2)}×
+                                {job.language.toUpperCase()}
                               </p>
                             </div>
 
