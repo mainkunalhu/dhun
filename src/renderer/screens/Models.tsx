@@ -8,6 +8,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
+import appIcon from '../../../assets/brand/icon-rounded.png';
 import type { ModelSummary } from '../../shared/model';
 import {
   Badge,
@@ -135,9 +136,14 @@ export function Models() {
         <div className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-8 py-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center text-ink-soft">
-                <Box className="size-5" aria-hidden="true" />
-              </span>
+              <img
+                src={appIcon}
+                alt=""
+                width={44}
+                height={44}
+                draggable={false}
+                className="size-11 shrink-0"
+              />
               <div>
                 <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
                   Models
@@ -148,7 +154,7 @@ export function Models() {
               </div>
             </div>
 
-            <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <Button size="lg" onClick={() => setImportOpen(true)}>
               <Plus className="size-4" aria-hidden="true" />
               Import JSON
             </Button>
@@ -254,8 +260,8 @@ export function Models() {
                 return (
                   <Card key={model.id} className="flex flex-col gap-3">
                     <div className="flex items-start gap-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-sm font-semibold text-ink-soft shadow-inset">
-                        {model.family.slice(0, 1)}
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
+                        <Box className="size-5" aria-hidden="true" />
                       </span>
 
                       <div className="min-w-0 flex-1">
