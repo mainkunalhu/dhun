@@ -2,29 +2,38 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
   AudioLines,
+  Download,
   Folder,
+  FolderInput,
   Pause,
+  Pencil,
   Play,
-  RotateCcw,
+  Trash2,
   TriangleAlert,
-  X,
 } from 'lucide-react';
-import type { JobStatus } from '../../shared/job';
-import type { ProjectSettings, ProjectSummary } from '../../shared/project';
+import type { Job, JobStatus } from '../../shared/job';
+import {
+  LIBRARY_PROJECT_ID,
+  type ProjectSettings,
+  type ProjectSummary,
+} from '../../shared/project';
 import {
   Badge,
   Button,
   Card,
   Field,
   IconButton,
+  Input,
   Progress,
   SectionLabel,
   Select,
   Textarea,
 } from '../components/ui';
+import { Modal } from '../components/Modal';
 import { formatRelative } from '../lib/format';
 import { useJobs } from '../lib/useJobs';
 import { useModelsContext } from '../lib/models-context';
+import { usePlayer } from '../lib/player';
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
@@ -88,11 +97,27 @@ function formatDuration(ms: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-export function ProjectDetail() {
-  const { id } = useParams<{ id: string }>();
+/** Avoid reusing a name after a take has been deleted. */
+function nextTakeName(jobs: Job[]): string {
+  const used = new Set(
+    jobs.map((job) => job.name.trim().toLowerCase()).filter(Boolean),
+  );
+  let number = jobs.length + 1;
+  while (used.has(`take ${number}`)) number += 1;
+  return `Take ${number}`;
+}
+
+export function Studio({
+  projectId,
+  library = false,
+}: {
+  projectId: string;
+  library?: boolean;
+}) {
   const navigate = useNavigate();
+  const player = usePlayer();
   const { models, loading: modelsLoading } = useModelsContext();
-  const { jobs, refresh: refreshJobs } = useJobs(id);
+  const { jobs, refresh: refreshJobs } = useJobs(projectId);
 
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,10 +134,15 @@ export function ProjectDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [playbackProgress, setPlaybackProgress] = useState(0);
-  const [playbackMs, setPlaybackMs] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [moving, setMoving] = useState<Job | null>(null);
+  const [moveTargets, setMoveTargets] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [deleting, setDeleting] = useState<Job | null>(null);
+  const [renaming, setRenaming] = useState<Job | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [dialogPending, setDialogPending] = useState(false);
   const lastSavedScript = useRef('');
   const lastSavedSettings = useRef('');
 
@@ -121,7 +151,7 @@ export function ProjectDetail() {
     setLoading(true);
 
     window.dhun.projects
-      .get(id ?? '')
+      .get(projectId)
       .then((next) => {
         if (!alive) return;
         lastSavedScript.current = next.script;
@@ -131,10 +161,12 @@ export function ProjectDetail() {
         setSettings(next.settings);
         setError(null);
 
-        try {
-          localStorage.setItem('dhun.lastProject', next.id);
-        } catch {
-          /* storage can be unavailable */
+        if (!library) {
+          try {
+            localStorage.setItem('dhun.lastProject', next.id);
+          } catch {
+            /* storage can be unavailable */
+          }
         }
       })
       .catch((cause: unknown) => {
@@ -153,7 +185,7 @@ export function ProjectDetail() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [projectId, library]);
 
   useEffect(() => {
     if (!project || script === lastSavedScript.current) return;
@@ -203,6 +235,33 @@ export function ProjectDetail() {
 
     return () => window.clearTimeout(timer);
   }, [settings, project]);
+
+  useEffect(() => {
+    if (!moving) return;
+
+    let alive = true;
+    window.dhun.projects
+      .list()
+      .then((projects) => {
+        if (!alive) return;
+        const targets = projects
+          .filter((item) => item.id !== projectId)
+          .map((item) => ({ id: item.id, name: item.name }));
+
+        if (!library) {
+          targets.push({ id: LIBRARY_PROJECT_ID, name: 'Library' });
+        }
+
+        setMoveTargets(targets);
+      })
+      .catch(() => {
+        if (alive) setMoveTargets([]);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [moving, projectId, library]);
 
   const installed = useMemo(
     () =>
@@ -274,6 +333,7 @@ export function ProjectDetail() {
 
     try {
       await window.dhun.jobs.create(project.id, {
+        name: nextTakeName(jobs),
         modelId: selectedModel.id,
         voiceId: selectedVoice.id,
         language,
@@ -291,9 +351,8 @@ export function ProjectDetail() {
   };
 
   const cancelJob = async (jobId: string) => {
-    if (!project) return;
     try {
-      await window.dhun.jobs.cancel(project.id, jobId);
+      await window.dhun.jobs.cancel(projectId, jobId);
       await refreshJobs();
     } catch {
       await refreshJobs();
@@ -301,10 +360,9 @@ export function ProjectDetail() {
   };
 
   const retryJob = async (jobId: string) => {
-    if (!project) return;
     setActionError(null);
     try {
-      await window.dhun.jobs.retry(project.id, jobId);
+      await window.dhun.jobs.retry(projectId, jobId);
       await refreshJobs();
     } catch (cause) {
       setActionError(
@@ -313,28 +371,72 @@ export function ProjectDetail() {
     }
   };
 
-  const togglePlay = (jobId: string) => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const moveTake = async (targetId: string) => {
+    if (!moving) return;
+    setDialogPending(true);
+    setActionError(null);
 
-    if (playingId === jobId) {
-      audio.pause();
-      setPlayingId(null);
-      return;
+    try {
+      await window.dhun.jobs.move(projectId, targetId, moving.id);
+      setMoving(null);
+      await refreshJobs();
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : 'Could not move that take.',
+      );
+    } finally {
+      setDialogPending(false);
     }
+  };
 
-    audio.src = `dhun-media://renders/${jobId}.wav`;
-    audio.currentTime = 0;
-    setPlaybackProgress(0);
-    setPlaybackMs(0);
+  const deleteTake = async () => {
+    if (!deleting) return;
+    setDialogPending(true);
+    setActionError(null);
 
-    void audio
-      .play()
-      .then(() => setPlayingId(jobId))
-      .catch(() => {
-        setActionError('Could not play that take.');
-        setPlayingId(null);
-      });
+    try {
+      await window.dhun.jobs.remove(projectId, deleting.id);
+      if (player.current?.id === deleting.id) player.stop();
+      setDeleting(null);
+      await refreshJobs();
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : 'Could not delete that take.',
+      );
+    } finally {
+      setDialogPending(false);
+    }
+  };
+
+  const renameTake = async () => {
+    if (!renaming) return;
+    setDialogPending(true);
+    setActionError(null);
+
+    try {
+      await window.dhun.jobs.rename(projectId, renaming.id, renameValue);
+      setRenaming(null);
+      await refreshJobs();
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : 'Could not rename that take.',
+      );
+    } finally {
+      setDialogPending(false);
+    }
+  };
+
+  const exportTake = async (job: Job) => {
+    setActionError(null);
+    try {
+      await window.dhun.jobs.export(projectId, job.id);
+      setNotice('Exported to Downloads');
+      window.setTimeout(() => setNotice(null), 4000);
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : 'Could not export that take.',
+      );
+    }
   };
 
   return (
@@ -359,14 +461,20 @@ export function ProjectDetail() {
             <>
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
-                  <Folder className="size-5" aria-hidden="true" />
+                  {library ? (
+                    <AudioLines className="size-5" aria-hidden="true" />
+                  ) : (
+                    <Folder className="size-5" aria-hidden="true" />
+                  )}
                 </span>
                 <div className="min-w-0">
                   <h1 className="truncate text-xl font-semibold tracking-tight text-ink-strong">
-                    {project.name}
+                    {library ? 'Library' : project.name}
                   </h1>
                   <p className="text-xs text-ink-soft">
-                    Created {formatRelative(project.createdAt)}
+                    {library
+                      ? 'Takes that are not attached to a project'
+                      : `Created ${formatRelative(project.createdAt)}`}
                   </p>
                 </div>
               </div>
@@ -404,7 +512,11 @@ export function ProjectDetail() {
                   />
 
                   <div className="flex items-center justify-between text-xs text-ink-soft">
-                    <span>Saved to the project folder</span>
+                    <span>
+                      {library
+                        ? 'Saved in the library'
+                        : 'Saved to the project folder'}
+                    </span>
                     <span>
                       {saveError ? (
                         <span className="text-danger">{saveError}</span>
@@ -529,6 +641,10 @@ export function ProjectDetail() {
                   <span className="text-xs text-ink-soft">One at a time</span>
                 </div>
 
+                {notice ? (
+                  <p className="text-xs text-success">{notice}</p>
+                ) : null}
+
                 {jobs.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-line-strong px-6 py-10 text-center text-xs text-ink-soft">
                     No takes yet. Generate a voice to see it here.
@@ -542,6 +658,8 @@ export function ProjectDetail() {
                       const voice = model?.voices.find(
                         (item) => item.id === job.voiceId,
                       );
+                      const isPlaying =
+                        player.current?.id === job.id && player.playing;
 
                       return (
                         <li
@@ -556,13 +674,14 @@ export function ProjectDetail() {
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="truncate text-sm font-medium text-ink-strong">
-                                {voice?.name ?? job.voiceId}
+                                {job.name || voice?.name || job.voiceId}
                               </p>
                               <Badge tone={statusTone(job.status)}>
                                 {job.status}
                               </Badge>
                             </div>
                             <p className="mt-0.5 truncate text-xs text-ink-soft">
+                              {voice?.name ?? job.voiceId} ·{' '}
                               {model?.name ?? job.modelId} ·{' '}
                               {job.language.toUpperCase()} ·{' '}
                               {job.speed.toFixed(2)}×
@@ -573,15 +692,6 @@ export function ProjectDetail() {
                                 <Progress value={job.progress} />
                                 <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-soft">
                                   {job.progress}%
-                                </span>
-                              </div>
-                            ) : null}
-
-                            {playingId === job.id ? (
-                              <div className="mt-2 flex items-center gap-2">
-                                <Progress value={playbackProgress} />
-                                <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-soft">
-                                  {formatDuration(playbackMs)}
                                 </span>
                               </div>
                             ) : null}
@@ -596,15 +706,19 @@ export function ProjectDetail() {
                           <div className="flex shrink-0 items-center gap-1">
                             {job.status === 'done' ? (
                               <IconButton
-                                label={
-                                  playingId === job.id
-                                    ? 'Pause take'
-                                    : 'Play take'
+                                label={isPlaying ? 'Pause take' : 'Play take'}
+                                active={isPlaying}
+                                onClick={() =>
+                                  player.play({
+                                    id: job.id,
+                                    title:
+                                      job.name || voice?.name || job.voiceId,
+                                    subtitle: `${voice?.name ?? job.voiceId} · ${model?.name ?? job.modelId} · ${job.language.toUpperCase()}`,
+                                    durationMs: job.durationMs ?? 0,
+                                  })
                                 }
-                                active={playingId === job.id}
-                                onClick={() => togglePlay(job.id)}
                               >
-                                {playingId === job.id ? (
+                                {isPlaying ? (
                                   <Pause className="size-4" />
                                 ) : (
                                   <Play className="size-4" />
@@ -612,24 +726,74 @@ export function ProjectDetail() {
                               </IconButton>
                             ) : null}
 
-                            {job.status === 'failed' ||
+                            {job.status === 'done' ||
+                            job.status === 'failed' ||
                             job.status === 'canceled' ? (
-                              <IconButton
-                                label="Retry take"
-                                onClick={() => void retryJob(job.id)}
-                              >
-                                <RotateCcw className="size-4" />
-                              </IconButton>
+                              <>
+                                <IconButton
+                                  label="Rename take"
+                                  onClick={() => {
+                                    setActionError(null);
+                                    setRenameValue(
+                                      job.name || voice?.name || '',
+                                    );
+                                    setRenaming(job);
+                                  }}
+                                >
+                                  <Pencil className="size-4" />
+                                </IconButton>
+
+                                {job.status === 'done' ? (
+                                  <IconButton
+                                    label="Export take"
+                                    onClick={() => void exportTake(job)}
+                                  >
+                                    <Download className="size-4" />
+                                  </IconButton>
+                                ) : null}
+
+                                <IconButton
+                                  label="Move take"
+                                  onClick={() => {
+                                    setActionError(null);
+                                    setMoving(job);
+                                  }}
+                                >
+                                  <FolderInput className="size-4" />
+                                </IconButton>
+                                <IconButton
+                                  label="Delete take"
+                                  tone="danger"
+                                  onClick={() => {
+                                    setActionError(null);
+                                    setDeleting(job);
+                                  }}
+                                >
+                                  <Trash2 className="size-4" />
+                                </IconButton>
+                              </>
                             ) : null}
 
                             {job.status === 'queued' ||
                             job.status === 'running' ? (
-                              <IconButton
-                                label="Cancel take"
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => void cancelJob(job.id)}
                               >
-                                <X className="size-4" />
-                              </IconButton>
+                                Cancel
+                              </Button>
+                            ) : null}
+
+                            {job.status === 'failed' ||
+                            job.status === 'canceled' ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void retryJob(job.id)}
+                              >
+                                Retry
+                              </Button>
                             ) : null}
                           </div>
                         </li>
@@ -643,22 +807,143 @@ export function ProjectDetail() {
         </div>
       </div>
 
-      <audio
-        ref={audioRef}
-        onTimeUpdate={(event) => {
-          const audio = event.currentTarget;
-          if (audio.duration) {
-            setPlaybackProgress((audio.currentTime / audio.duration) * 100);
-            setPlaybackMs(audio.currentTime * 1000);
-          }
-        }}
-        onEnded={() => {
-          setPlayingId(null);
-          setPlaybackProgress(0);
-          setPlaybackMs(0);
-        }}
-        className="hidden"
-      />
+      {moving ? (
+        <Modal
+          title="Move take"
+          description="Choose where this take should live."
+          onClose={() => {
+            if (!dialogPending) setMoving(null);
+          }}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              {moveTargets.length === 0 ? (
+                <p className="text-sm text-ink-soft">
+                  No other projects yet. Create one first.
+                </p>
+              ) : (
+                moveTargets.map((target) => (
+                  <button
+                    key={target.id}
+                    type="button"
+                    disabled={dialogPending}
+                    onClick={() => void moveTake(target.id)}
+                    className="flex h-10 items-center rounded-md px-3 text-left text-sm text-ink transition-colors hover:bg-raised disabled:cursor-not-allowed disabled:text-ink-faint"
+                  >
+                    {target.name}
+                  </button>
+                ))
+              )}
+            </div>
+
+            {actionError ? (
+              <p className="text-xs text-danger">{actionError}</p>
+            ) : null}
+
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                disabled={dialogPending}
+                onClick={() => setMoving(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {renaming ? (
+        <Modal
+          title="Name this take"
+          description="A name you'll recognise in the library."
+          onClose={() => {
+            if (!dialogPending) setRenaming(null);
+          }}
+        >
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (renameValue.trim() && !dialogPending) void renameTake();
+            }}
+          >
+            <Field label="Take name">
+              <Input
+                autoFocus
+                value={renameValue}
+                maxLength={80}
+                disabled={dialogPending}
+                onChange={(event) => setRenameValue(event.target.value)}
+              />
+            </Field>
+
+            {actionError ? (
+              <p className="text-xs text-danger">{actionError}</p>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                disabled={dialogPending}
+                onClick={() => setRenaming(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={dialogPending || !renameValue.trim()}
+              >
+                Save name
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
+
+      {deleting ? (
+        <Modal
+          title="Delete take?"
+          description="The audio file is removed too. This can't be undone."
+          onClose={() => {
+            if (!dialogPending) setDeleting(null);
+          }}
+        >
+          <div className="flex flex-col gap-4">
+            {actionError ? (
+              <p className="text-xs text-danger">{actionError}</p>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                autoFocus
+                disabled={dialogPending}
+                onClick={() => setDeleting(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                disabled={dialogPending}
+                onClick={() => void deleteTake()}
+              >
+                {dialogPending ? 'Deleting…' : 'Delete take'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
+}
+
+export function ProjectStudio() {
+  const { id } = useParams<{ id: string }>();
+  if (!id) return null;
+  return <Studio projectId={id} />;
+}
+
+export function LibraryStudio() {
+  return <Studio projectId={LIBRARY_PROJECT_ID} library />;
 }

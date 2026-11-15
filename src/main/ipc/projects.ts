@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { app, ipcMain } from 'electron';
+import { existsSync, readFileSync } from 'node:fs';
+import { copyFile } from 'node:fs/promises';
+import { app, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import type { NewJob } from '../../shared/job';
 import type { ProjectSettings } from '../../shared/project';
@@ -85,6 +86,45 @@ export function registerProjectHandlers(): void {
       return job;
     },
   );
+  ipcMain.handle('jobs:remove', (_event, projectId: string, jobId: string) =>
+    store.removeJob(projectId, jobId),
+  );
+  ipcMain.handle(
+    'jobs:move',
+    (_event, fromProjectId: string, toProjectId: string, jobId: string) =>
+      store.moveJob(fromProjectId, toProjectId, jobId),
+  );
+  ipcMain.handle(
+    'jobs:rename',
+    (_event, projectId: string, jobId: string, name: string) =>
+      store.renameJob(projectId, jobId, name),
+  );
+  ipcMain.handle(
+    'jobs:export',
+    async (_event, projectId: string, jobId: string) => {
+      const job = await store.getJob(projectId, jobId);
+      if (!job.outputPath) throw new Error('This take has no audio yet.');
+
+      const base =
+        job.name
+          .replace(/[\\/:*?"<>|]/g, '-')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 80) || 'take';
+      const downloads = app.getPath('downloads');
+      let target = path.join(downloads, `${base}.wav`);
+      let suffix = 2;
+
+      while (existsSync(target)) {
+        target = path.join(downloads, `${base}-${suffix}.wav`);
+        suffix += 1;
+      }
+
+      await copyFile(job.outputPath, target);
+      shell.showItemInFolder(target);
+      return target;
+    },
+  );
   ipcMain.handle(
     'jobs:retry',
     async (_event, projectId: string, jobId: string) => {
@@ -103,5 +143,8 @@ export function registerProjectHandlers(): void {
     },
   );
 
-  void queue.recover();
+  void (async () => {
+    await store.ensureLibrary();
+    await queue.recover();
+  })();
 }

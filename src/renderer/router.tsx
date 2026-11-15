@@ -1,7 +1,7 @@
 import { createHashRouter, Navigate } from 'react-router';
 import { RootLayout } from './layouts/RootLayout';
 import { Models } from './screens/Models';
-import { ProjectDetail } from './screens/ProjectDetail';
+import { LibraryStudio, ProjectStudio } from './screens/Studio';
 import { Projects } from './screens/Projects';
 import { RouteError } from './screens/RouteError';
 import { Splash } from './screens/Splash';
@@ -23,7 +23,8 @@ export const router = createHashRouter([
       { index: true, element: <Splash /> },
       { path: 'studio', element: <StudioRedirect /> },
       { path: 'projects', element: <Projects /> },
-      { path: 'projects/:id', element: <ProjectDetail /> },
+      { path: 'projects/:id', element: <ProjectStudio /> },
+      { path: 'library', element: <LibraryStudio /> },
       { path: 'models', element: <Models /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

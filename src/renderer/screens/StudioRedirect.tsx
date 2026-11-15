@@ -18,7 +18,7 @@ export function StudioRedirect() {
         if (!alive) return;
         const target =
           projects.find((project) => project.id === last) ?? projects[0];
-        navigate(target ? `/projects/${target.id}` : '/projects', {
+        navigate(target ? `/projects/${target.id}` : '/library', {
           replace: true,
         });
       })

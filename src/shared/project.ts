@@ -1,3 +1,5 @@
+export const LIBRARY_PROJECT_ID = '00000000-0000-0000-0000-000000000000';
+
 export type ProjectSettings = {
   modelId: string | null;
   voiceId: string | null;

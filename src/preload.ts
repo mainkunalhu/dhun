@@ -25,6 +25,14 @@ const jobs: JobsApi = {
     ipcRenderer.invoke('jobs:cancel', projectId, jobId),
   retry: (projectId, jobId) =>
     ipcRenderer.invoke('jobs:retry', projectId, jobId),
+  remove: (projectId, jobId) =>
+    ipcRenderer.invoke('jobs:remove', projectId, jobId),
+  move: (fromProjectId, toProjectId, jobId) =>
+    ipcRenderer.invoke('jobs:move', fromProjectId, toProjectId, jobId),
+  rename: (projectId, jobId, name) =>
+    ipcRenderer.invoke('jobs:rename', projectId, jobId, name),
+  export: (projectId, jobId) =>
+    ipcRenderer.invoke('jobs:export', projectId, jobId),
 };
 
 const models: ModelsApi = {

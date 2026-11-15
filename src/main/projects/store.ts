@@ -10,10 +10,11 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import type { Job, NewJob } from '../../shared/job';
-import type {
-  Project,
-  ProjectSettings,
-  ProjectSummary,
+import {
+  LIBRARY_PROJECT_ID,
+  type Project,
+  type ProjectSettings,
+  type ProjectSummary,
 } from '../../shared/project';
 
 const PROJECT_FILE = 'project.json';
@@ -99,7 +100,7 @@ export function createProjectStore(root: string) {
     await rename(temp, file);
   }
 
-  async function list(): Promise<ProjectSummary[]> {
+  async function list(includeLibrary = false): Promise<ProjectSummary[]> {
     await mkdir(root, { recursive: true });
     const entries = await readdir(root, { withFileTypes: true });
     const projects: ProjectSummary[] = [];
@@ -108,6 +109,7 @@ export function createProjectStore(root: string) {
       if (!entry.isDirectory()) continue;
       try {
         const project = await readFolder(entry.name);
+        if (!includeLibrary && project.id === LIBRARY_PROJECT_ID) continue;
         // The list never needs the script text; only get() returns it.
         projects.push({ ...project, script: '', voices: 0, takes: 0 });
       } catch {
@@ -185,9 +187,52 @@ export function createProjectStore(root: string) {
     return trimmed;
   }
 
+  async function ensureLibrary(): Promise<Project> {
+    await mkdir(root, { recursive: true });
+    const entries = await readdir(root, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      try {
+        const project = await readFolder(entry.name);
+        if (project.id === LIBRARY_PROJECT_ID) return project;
+      } catch {
+        // Skip unreadable folders.
+      }
+    }
+
+    const now = new Date().toISOString();
+    const project: Project = {
+      id: LIBRARY_PROJECT_ID,
+      name: 'Library',
+      favorite: false,
+      createdAt: now,
+      updatedAt: now,
+      script: '',
+      settings: {
+        modelId: null,
+        voiceId: null,
+        language: 'en',
+        speed: 1,
+      },
+    };
+    const folder = await uniqueFolder('library');
+    await writeFolder(folder, project);
+    return project;
+  }
+
   async function get(id: string): Promise<ProjectSummary> {
-    const { project } = await locate(id);
-    return { ...project, voices: 0, takes: 0 };
+    try {
+      const { project } = await locate(id);
+      return { ...project, voices: 0, takes: 0 };
+    } catch (cause) {
+      // The library is created on startup; if a deep link beats that write,
+      // make sure it exists before reporting it missing.
+      if (id !== LIBRARY_PROJECT_ID) throw cause;
+      await ensureLibrary();
+      const { project } = await locate(id);
+      return { ...project, voices: 0, takes: 0 };
+    }
   }
 
   async function create(name: string): Promise<Project> {
@@ -286,6 +331,7 @@ export function createProjectStore(root: string) {
     return {
       id: asString(value.id, 'job id'),
       projectId: asString(value.projectId, 'project id'),
+      name: typeof value.name === 'string' ? value.name.trim() : '',
       modelId: asString(value.modelId, 'model id'),
       voiceId: asString(value.voiceId, 'voice id'),
       language: typeof value.language === 'string' ? value.language : 'en',
@@ -362,6 +408,7 @@ export function createProjectStore(root: string) {
     const job: Job = {
       id: randomUUID(),
       projectId,
+      name: input.name?.trim() || 'Take',
       modelId: input.modelId,
       voiceId: input.voiceId,
       language: input.language || 'en',
@@ -397,6 +444,49 @@ export function createProjectStore(root: string) {
     return next;
   }
 
+  async function renameJob(
+    projectId: string,
+    jobId: string,
+    name: string,
+  ): Promise<Job> {
+    const { folder } = await locate(projectId);
+    const job = await readJob(folder, jobId);
+    const clean = typeof name === 'string' ? name.trim().slice(0, 80) : '';
+
+    if (!clean) throw new Error('Give the take a name.');
+    job.name = clean;
+    job.updatedAt = new Date().toISOString();
+    await writeJob(folder, job);
+    return job;
+  }
+
+  async function removeJob(projectId: string, jobId: string): Promise<void> {
+    const { folder } = await locate(projectId);
+    const job = await readJob(folder, jobId);
+    await rm(path.join(jobsDir(folder), `${jobId}.json`), { force: true });
+    if (job.outputPath) await rm(job.outputPath, { force: true });
+  }
+
+  async function moveJob(
+    fromProjectId: string,
+    toProjectId: string,
+    jobId: string,
+  ): Promise<Job> {
+    const from = await locate(fromProjectId);
+    const to = await locate(toProjectId);
+    const job = await readJob(from.folder, jobId);
+    const next: Job = {
+      ...job,
+      projectId: toProjectId,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeJob(to.folder, next);
+    await rm(path.join(jobsDir(from.folder), `${jobId}.json`), {
+      force: true,
+    });
+    return next;
+  }
+
   async function cancelJob(projectId: string, jobId: string): Promise<Job> {
     const { folder } = await locate(projectId);
     const job = await readJob(folder, jobId);
@@ -414,6 +504,7 @@ export function createProjectStore(root: string) {
     root,
     list,
     get,
+    ensureLibrary,
     create,
     rename: renameProject,
     setFavorite,
@@ -425,5 +516,8 @@ export function createProjectStore(root: string) {
     updateJob,
     createJob,
     cancelJob,
+    removeJob,
+    moveJob,
+    renameJob,
   };
 }

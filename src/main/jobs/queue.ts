@@ -125,7 +125,7 @@ export function createRenderQueue({
 
   async function recover(): Promise<void> {
     try {
-      const projects = await store.list();
+      const projects = await store.list(true);
       for (const project of projects) {
         const jobs = await store.listJobs(project.id);
         for (const job of jobs) {

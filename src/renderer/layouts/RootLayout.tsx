@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router';
+import { PlayerBar } from './PlayerBar';
 import { Sidebar } from './Sidebar';
 
 /**
@@ -16,8 +17,11 @@ export function RootLayout() {
 
       <div className="flex min-h-0 flex-1">
         <Sidebar />
-        <main className="min-w-0 flex-1">
-          <Outlet />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1">
+            <Outlet />
+          </div>
+          <PlayerBar />
         </main>
       </div>
     </div>

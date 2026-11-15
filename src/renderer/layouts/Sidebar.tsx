@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { AudioLines, Box, FolderOpen, ShieldCheck } from 'lucide-react';
+import { AudioLines, Box, Disc3, FolderOpen, ShieldCheck } from 'lucide-react';
 import appIcon from '../../../assets/brand/icon-rounded.png';
 import { Progress } from '../components/ui';
 import { cn } from '../lib/cn';
@@ -42,6 +42,10 @@ export function Sidebar() {
         >
           <AudioLines className="size-4" aria-hidden="true" />
           Studio
+        </Link>
+        <Link to="/library" className={navClass(pathname === '/library')}>
+          <Disc3 className="size-4" aria-hidden="true" />
+          Library
         </Link>
         <Link to="/projects" className={navClass(pathname === '/projects')}>
           <FolderOpen className="size-4" aria-hidden="true" />
