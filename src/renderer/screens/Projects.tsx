@@ -347,8 +347,8 @@ export function Projects() {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[56rem] px-8 pb-10">
           {/* Top breathing room that scrolls away; header and search stay put. */}
-          <div className="h-10" aria-hidden="true" />
-          <div className="sticky top-0 z-10 -mx-8 bg-canvas px-8 pb-5">
+          <div className="h-4" aria-hidden="true" />
+          <div className="sticky top-0 z-10 -mx-8 bg-canvas px-8 pt-6 pb-5">
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
