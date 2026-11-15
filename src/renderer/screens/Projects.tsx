@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Folder,
-  FolderOpen,
   Pencil,
   Plus,
   Search,
@@ -10,6 +9,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import type { ProjectSummary } from '../../shared/project';
+import appIcon from '../../../assets/brand/icon-rounded.png';
 import { cn } from '../lib/cn';
 import { formatRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
@@ -345,34 +345,66 @@ export function Projects() {
       <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-8 py-10">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-lg bg-surface text-ink-soft shadow-1">
-                <FolderOpen className="size-4" aria-hidden="true" />
-              </span>
-              <div>
-                <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
-                  Projects
-                </h1>
-                <p className="text-xs tabular-nums text-ink-soft">
-                  {loading
-                    ? 'Loading…'
-                    : `${projects.length} ${
-                        projects.length === 1 ? 'project' : 'projects'
-                      }`}
-                </p>
-              </div>
-            </div>
+        <div className="mx-auto w-full max-w-[56rem] px-8 pb-10">
+          {/* Top breathing room that scrolls away; header and search stay put. */}
+          <div className="h-10" aria-hidden="true" />
+          <div className="sticky top-0 z-10 -mx-8 bg-canvas px-8 pb-5">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={appIcon}
+                    alt=""
+                    width={44}
+                    height={44}
+                    draggable={false}
+                    className="size-11 shrink-0"
+                  />
+                  <div>
+                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
+                      Projects
+                    </h1>
+                    <p className="text-xs tabular-nums text-ink-soft">
+                      {loading
+                        ? 'Loading…'
+                        : `${projects.length} ${
+                            projects.length === 1 ? 'project' : 'projects'
+                          }`}
+                    </p>
+                  </div>
+                </div>
 
-            <Button size="lg" onClick={() => openDialog({ kind: 'create' })}>
-              <Plus className="size-4" aria-hidden="true" />
-              New project
-            </Button>
+                <Button
+                  size="lg"
+                  onClick={() => openDialog({ kind: 'create' })}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  New project
+                </Button>
+              </div>
+
+              {isEmpty || (error && projects.length === 0) ? null : (
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search projects"
+                    aria-label="Search projects"
+                    disabled={loading}
+                    className="h-10 pl-10"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {error ? (
-            <div className="flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
+            <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
               <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1">{error}</span>
               <Button variant="ghost" size="sm" onClick={() => void refresh()}>
@@ -382,7 +414,7 @@ export function Projects() {
           ) : null}
 
           {actionError ? (
-            <div className="flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
+            <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
               <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0 flex-1">{actionError}</span>
               <Button
@@ -411,56 +443,36 @@ export function Projects() {
             >
               Create a project to keep your script, voices and takes together.
             </EmptyState>
-          ) : error && projects.length === 0 ? null : (
-            <>
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft"
-                  aria-hidden="true"
-                />
-                <Input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search projects"
-                  aria-label="Search projects"
-                  disabled={loading}
-                  className="h-10 pl-10"
-                />
-              </div>
-
-              {loading ? (
-                <ProjectListSkeleton />
-              ) : noMatches ? (
-                <EmptyState
-                  icon={<Search className="size-5" aria-hidden="true" />}
-                  title="No matches"
-                  action={
-                    <Button
-                      variant="secondary"
-                      className="mt-2"
-                      onClick={() => setQuery('')}
-                    >
-                      Clear search
-                    </Button>
-                  }
+          ) : error && projects.length === 0 ? null : loading ? (
+            <ProjectListSkeleton />
+          ) : noMatches ? (
+            <EmptyState
+              icon={<Search className="size-5" aria-hidden="true" />}
+              title="No matches"
+              action={
+                <Button
+                  variant="secondary"
+                  className="mt-2"
+                  onClick={() => setQuery('')}
                 >
-                  No project matches “{query}”.
-                </EmptyState>
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {visible.map((project) => (
-                    <ProjectRow
-                      key={project.id}
-                      project={project}
-                      onFavorite={() => void toggleFavorite(project)}
-                      onRename={() => openDialog({ kind: 'rename', project })}
-                      onDelete={() => openDialog({ kind: 'delete', project })}
-                    />
-                  ))}
-                </ul>
-              )}
-            </>
+                  Clear search
+                </Button>
+              }
+            >
+              No project matches “{query}”.
+            </EmptyState>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {visible.map((project) => (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  onFavorite={() => void toggleFavorite(project)}
+                  onRename={() => openDialog({ kind: 'rename', project })}
+                  onDelete={() => openDialog({ kind: 'delete', project })}
+                />
+              ))}
+            </ul>
           )}
         </div>
       </div>
