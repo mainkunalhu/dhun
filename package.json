@@ -19,7 +19,8 @@
     "lint": "oxlint && oxfmt --check",
     "lint:fix": "oxlint --fix && oxfmt --write",
     "typecheck": "tsc --noEmit",
-    "icons": "uv run --with pillow python scripts/build-icons.py"
+    "icons": "uv run --with pillow python scripts/build-icons.py",
+    "seed": "bun scripts/seed-projects.ts"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
