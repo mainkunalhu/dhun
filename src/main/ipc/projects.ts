@@ -8,6 +8,7 @@ export function registerProjectHandlers(): void {
   );
 
   ipcMain.handle('projects:list', () => store.list());
+  ipcMain.handle('projects:get', (_event, id: string) => store.get(id));
   ipcMain.handle('projects:create', (_event, name: string) =>
     store.create(name),
   );

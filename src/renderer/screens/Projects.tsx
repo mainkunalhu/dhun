@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import {
   Folder,
   Pencil,
@@ -50,19 +51,24 @@ function ProjectRow({
   onDelete: () => void;
 }) {
   return (
-    <li className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-1">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
-        <Folder className="size-5" aria-hidden="true" />
-      </span>
+    <li className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-1 transition-colors duration-150 hover:bg-raised">
+      <Link
+        to={`/projects/${project.id}`}
+        className="flex min-w-0 flex-1 items-center gap-4"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
+          <Folder className="size-5" aria-hidden="true" />
+        </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink-strong">
-          {project.name}
-        </p>
-        <p className="mt-0.5 truncate text-xs text-ink-soft">
-          {projectMeta(project)}
-        </p>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink-strong">
+            {project.name}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-ink-soft">
+            {projectMeta(project)}
+          </p>
+        </div>
+      </Link>
 
       <div className="flex shrink-0 items-center gap-1">
         <IconButton
@@ -344,137 +350,152 @@ export function Projects() {
     <div className="flex h-full flex-col bg-canvas">
       <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[56rem] px-8 pb-10">
-          {/* Top breathing room that scrolls away; header and search stay put. */}
-          <div className="h-4" aria-hidden="true" />
-          <div className="sticky top-0 z-10 -mx-8 bg-canvas px-8 pt-6 pb-5">
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={appIcon}
-                    alt=""
-                    width={44}
-                    height={44}
-                    draggable={false}
-                    className="size-11 shrink-0"
-                  />
-                  <div>
-                    <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
-                      Projects
-                    </h1>
-                    <p className="text-xs tabular-nums text-ink-soft">
-                      {loading
-                        ? 'Loading…'
-                        : `${projects.length} ${
-                            projects.length === 1 ? 'project' : 'projects'
-                          }`}
-                    </p>
+      <div className="relative min-h-0 flex-1">
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full max-w-[56rem] px-8 pb-10">
+            {/* Top breathing room that scrolls away; header and search stay put. */}
+            <div className="h-4" aria-hidden="true" />
+            <div className="sticky top-0 z-10 -mx-8 bg-canvas px-8 pt-6 pb-5">
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={appIcon}
+                      alt=""
+                      width={44}
+                      height={44}
+                      draggable={false}
+                      className="size-11 shrink-0"
+                    />
+                    <div>
+                      <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
+                        Projects
+                      </h1>
+                      <p className="text-xs tabular-nums text-ink-soft">
+                        {loading
+                          ? 'Loading…'
+                          : `${projects.length} ${
+                              projects.length === 1 ? 'project' : 'projects'
+                            }`}
+                      </p>
+                    </div>
                   </div>
+
+                  <Button
+                    size="lg"
+                    onClick={() => openDialog({ kind: 'create' })}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    New project
+                  </Button>
                 </div>
 
+                {isEmpty || (error && projects.length === 0) ? null : (
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft"
+                      aria-hidden="true"
+                    />
+                    <Input
+                      type="search"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search projects"
+                      aria-label="Search projects"
+                      disabled={loading}
+                      className="h-10 pl-10"
+                    />
+                  </div>
+                )}
+              </div>
+              <div
+                className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-canvas to-transparent"
+                aria-hidden="true"
+              />
+            </div>
+
+            {error ? (
+              <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
+                <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1">{error}</span>
                 <Button
-                  size="lg"
-                  onClick={() => openDialog({ kind: 'create' })}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void refresh()}
                 >
-                  <Plus className="size-4" aria-hidden="true" />
-                  New project
+                  Retry
                 </Button>
               </div>
+            ) : null}
 
-              {isEmpty || (error && projects.length === 0) ? null : (
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-soft"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    type="search"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search projects"
-                    aria-label="Search projects"
-                    disabled={loading}
-                    className="h-10 pl-10"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+            {actionError ? (
+              <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
+                <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1">{actionError}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActionError(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            ) : null}
 
-          {error ? (
-            <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
-              <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">{error}</span>
-              <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-                Retry
-              </Button>
-            </div>
-          ) : null}
-
-          {actionError ? (
-            <div className="mb-5 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
-              <TriangleAlert className="size-4 shrink-0" aria-hidden="true" />
-              <span className="min-w-0 flex-1">{actionError}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setActionError(null)}
+            {isEmpty ? (
+              <EmptyState
+                icon={<Folder className="size-5" aria-hidden="true" />}
+                title="No projects yet"
+                action={
+                  <Button
+                    className="mt-2"
+                    onClick={() => openDialog({ kind: 'create' })}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    New project
+                  </Button>
+                }
               >
-                Dismiss
-              </Button>
-            </div>
-          ) : null}
-
-          {isEmpty ? (
-            <EmptyState
-              icon={<Folder className="size-5" aria-hidden="true" />}
-              title="No projects yet"
-              action={
-                <Button
-                  className="mt-2"
-                  onClick={() => openDialog({ kind: 'create' })}
-                >
-                  <Plus className="size-4" aria-hidden="true" />
-                  New project
-                </Button>
-              }
-            >
-              Create a project to keep your script, voices and takes together.
-            </EmptyState>
-          ) : error && projects.length === 0 ? null : loading ? (
-            <ProjectListSkeleton />
-          ) : noMatches ? (
-            <EmptyState
-              icon={<Search className="size-5" aria-hidden="true" />}
-              title="No matches"
-              action={
-                <Button
-                  variant="secondary"
-                  className="mt-2"
-                  onClick={() => setQuery('')}
-                >
-                  Clear search
-                </Button>
-              }
-            >
-              No project matches “{query}”.
-            </EmptyState>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {visible.map((project) => (
-                <ProjectRow
-                  key={project.id}
-                  project={project}
-                  onFavorite={() => void toggleFavorite(project)}
-                  onRename={() => openDialog({ kind: 'rename', project })}
-                  onDelete={() => openDialog({ kind: 'delete', project })}
-                />
-              ))}
-            </ul>
-          )}
+                Create a project to keep your script, voices and takes together.
+              </EmptyState>
+            ) : error && projects.length === 0 ? null : loading ? (
+              <ProjectListSkeleton />
+            ) : noMatches ? (
+              <EmptyState
+                icon={<Search className="size-5" aria-hidden="true" />}
+                title="No matches"
+                action={
+                  <Button
+                    variant="secondary"
+                    className="mt-2"
+                    onClick={() => setQuery('')}
+                  >
+                    Clear search
+                  </Button>
+                }
+              >
+                No project matches “{query}”.
+              </EmptyState>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {visible.map((project) => (
+                  <ProjectRow
+                    key={project.id}
+                    project={project}
+                    onFavorite={() => void toggleFavorite(project)}
+                    onRename={() => openDialog({ kind: 'rename', project })}
+                    onDelete={() => openDialog({ kind: 'delete', project })}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-canvas to-transparent"
+          aria-hidden="true"
+        />
       </div>
 
       {renderDialog()}

@@ -15,6 +15,7 @@ export type ProjectSummary = Project & {
 /** The surface the preload exposes to the renderer. */
 export type ProjectsApi = {
   list(): Promise<ProjectSummary[]>;
+  get(id: string): Promise<ProjectSummary>;
   create(name: string): Promise<Project>;
   rename(id: string, name: string): Promise<Project>;
   setFavorite(id: string, favorite: boolean): Promise<Project>;

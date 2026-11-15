@@ -151,6 +151,11 @@ export function createProjectStore(root: string) {
     return trimmed;
   }
 
+  async function get(id: string): Promise<ProjectSummary> {
+    const { project } = await locate(id);
+    return { ...project, voices: 0, takes: 0 };
+  }
+
   async function create(name: string): Promise<Project> {
     const clean = cleanName(name);
     const id = randomUUID();
@@ -201,6 +206,7 @@ export function createProjectStore(root: string) {
   return {
     root,
     list,
+    get,
     create,
     rename: renameProject,
     setFavorite,
