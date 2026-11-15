@@ -10,10 +10,7 @@
       "repo": "mlx-community/Kokoro-82M-bf16",
       "revision": "main",
       "params": "82M",
-      "languages": [
-        "en",
-        "hi"
-      ],
+      "languages": ["en", "hi"],
       "voiceMode": "preset",
       "voices": [
         {
@@ -85,10 +82,7 @@
       "repo": "mlx-community/Kokoro-82M-4bit",
       "revision": "main",
       "params": "82M \u00b7 4-bit",
-      "languages": [
-        "en",
-        "hi"
-      ],
+      "languages": ["en", "hi"],
       "voiceMode": "preset",
       "voices": [
         {
@@ -201,9 +195,7 @@
       "repo": "mlx-community/chatterbox-fp16",
       "revision": "main",
       "params": "0.5B",
-      "languages": [
-        "en"
-      ],
+      "languages": ["en"],
       "voiceMode": "clone",
       "voices": [],
       "license": "MIT",
@@ -220,9 +212,7 @@
       "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
       "revision": "main",
       "params": "1.7B",
-      "languages": [
-        "en"
-      ],
+      "languages": ["en"],
       "voiceMode": "design",
       "voices": [
         {
@@ -310,9 +300,7 @@
       "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-6bit",
       "revision": "main",
       "params": "1.7B \u00b7 6-bit",
-      "languages": [
-        "en"
-      ],
+      "languages": ["en"],
       "voiceMode": "design",
       "voices": [
         {
@@ -400,9 +388,7 @@
       "repo": "maya-research/maya2-native",
       "revision": "main",
       "params": "4.7B",
-      "languages": [
-        "hi"
-      ],
+      "languages": ["hi"],
       "voiceMode": "preset",
       "voices": [
         {

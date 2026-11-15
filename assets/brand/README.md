@@ -3,13 +3,13 @@
 `logo.png` is the master artwork (1024 × 1024). Everything else in this folder
 is generated from it — do not hand-edit the generated files.
 
-| File            | Platform        | Notes                                          |
-| --------------- | --------------- | ---------------------------------------------- |
-| `icon.png`      | Linux, generic  | 1024, full bleed                               |
-| `icon-512.png`  | deb / rpm       | 512, full bleed                                |
-| `icon.ico`      | Windows         | 16–256, multi-size                             |
-| `icon.icns`     | macOS           | 16–1024, rounded square, inset, soft shadow    |
-| `icon-rounded.png` | in-app       | 512, rounded square on transparency            |
+| File               | Platform       | Notes                                       |
+| ------------------ | -------------- | ------------------------------------------- |
+| `icon.png`         | Linux, generic | 1024, full bleed                            |
+| `icon-512.png`     | deb / rpm      | 512, full bleed                             |
+| `icon.ico`         | Windows        | 16–256, multi-size                          |
+| `icon.icns`        | macOS          | 16–1024, rounded square, inset, soft shadow |
+| `icon-rounded.png` | in-app         | 512, rounded square on transparency         |
 
 Regenerate after replacing `logo.png`:
 
