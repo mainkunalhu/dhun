@@ -45,7 +45,7 @@ jobs:
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
 
       - name: Build installers
         run: bunx electron-forge make --arch=${{ matrix.arch }}
