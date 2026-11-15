@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Folder, Play, TriangleAlert, X } from 'lucide-react';
+import {
+  AudioLines,
+  Folder,
+  Play,
+  RotateCcw,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import type { JobStatus } from '../../shared/job';
 import type { ProjectSettings, ProjectSummary } from '../../shared/project';
 import {
@@ -99,7 +106,7 @@ export function ProjectDetail() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const lastSavedScript = useRef('');
   const lastSavedSettings = useRef('');
 
@@ -257,7 +264,7 @@ export function ProjectDetail() {
     if (!project || !selectedModel || !selectedVoice) return;
 
     setGenerating(true);
-    setGenerateError(null);
+    setActionError(null);
 
     try {
       await window.dhun.jobs.create(project.id, {
@@ -269,7 +276,7 @@ export function ProjectDetail() {
       });
       await refreshJobs();
     } catch (cause) {
-      setGenerateError(
+      setActionError(
         cause instanceof Error ? cause.message : 'Could not queue the render.',
       );
     } finally {
@@ -287,12 +294,25 @@ export function ProjectDetail() {
     }
   };
 
+  const retryJob = async (jobId: string) => {
+    if (!project) return;
+    setActionError(null);
+    try {
+      await window.dhun.jobs.retry(project.id, jobId);
+      await refreshJobs();
+    } catch (cause) {
+      setActionError(
+        cause instanceof Error ? cause.message : 'Could not retry that take.',
+      );
+    }
+  };
+
   const playJob = async (jobId: string) => {
     if (!project) return;
     try {
       await window.dhun.jobs.play(project.id, jobId);
     } catch (cause) {
-      setGenerateError(
+      setActionError(
         cause instanceof Error ? cause.message : 'Could not play that take.',
       );
     }
@@ -346,20 +366,26 @@ export function ProjectDetail() {
                 </div>
               ) : null}
 
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                <div className="flex min-w-0 flex-col gap-2">
+              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                <Card className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <SectionLabel>Script</SectionLabel>
+                    <span className="text-xs tabular-nums text-ink-soft">
+                      {words} {words === 1 ? 'word' : 'words'} · ~
+                      {estimate(words)}
+                    </span>
+                  </div>
+
                   <Textarea
                     value={script}
                     onChange={(event) => setScript(event.target.value)}
                     placeholder="Paste your script here. Blank lines separate segments."
                     aria-label="Script"
-                    className="min-h-[28rem] resize-y text-base leading-[1.7]"
+                    className="min-h-[22rem] resize-y border-line bg-canvas px-4 py-3 text-base leading-[1.7]"
                   />
+
                   <div className="flex items-center justify-between text-xs text-ink-soft">
-                    <span className="tabular-nums">
-                      {words} {words === 1 ? 'word' : 'words'} · ~
-                      {estimate(words)}
-                    </span>
+                    <span>Saved to the project folder</span>
                     <span>
                       {saveError ? (
                         <span className="text-danger">{saveError}</span>
@@ -372,188 +398,201 @@ export function ProjectDetail() {
                       )}
                     </span>
                   </div>
-                </div>
+                </Card>
 
-                <div className="flex flex-col gap-5">
-                  <Card className="flex flex-col gap-4">
-                    <SectionLabel>Render settings</SectionLabel>
+                <Card className="flex flex-col gap-4">
+                  <SectionLabel>Render settings</SectionLabel>
 
-                    <Field label="Model">
-                      <Select
-                        value={selectedModel?.id ?? ''}
-                        onChange={(event) => chooseModel(event.target.value)}
-                        disabled={installed.length === 0}
-                      >
-                        {installed.length === 0 ? (
-                          <option value="">No models installed</option>
-                        ) : (
-                          installed.map((model) => (
-                            <option key={model.id} value={model.id}>
-                              {model.name}
-                            </option>
-                          ))
-                        )}
-                      </Select>
-                    </Field>
-
-                    <Field
-                      label="Voice"
-                      hint={
-                        selectedVoice?.prompt
-                          ? selectedVoice.prompt.length > 100
-                            ? `${selectedVoice.prompt.slice(0, 97)}…`
-                            : selectedVoice.prompt
-                          : selectedModel?.voiceMode === 'clone'
-                            ? 'Cloned voices land with the voice library.'
-                            : undefined
-                      }
+                  <Field label="Model">
+                    <Select
+                      value={selectedModel?.id ?? ''}
+                      onChange={(event) => chooseModel(event.target.value)}
+                      disabled={installed.length === 0}
                     >
-                      <Select
-                        value={selectedVoice?.id ?? ''}
-                        onChange={(event) =>
-                          updateSettings({ voiceId: event.target.value })
-                        }
-                        disabled={voiceOptions.length === 0}
-                      >
-                        {voiceOptions.length === 0 ? (
-                          <option value="">No voices</option>
-                        ) : (
-                          voiceOptions.map((voice) => (
-                            <option key={voice.id} value={voice.id}>
-                              {voice.name} · {voice.language.toUpperCase()}
-                            </option>
-                          ))
-                        )}
-                      </Select>
-                    </Field>
-
-                    <Field label="Language">
-                      <Select
-                        value={language}
-                        onChange={(event) => chooseLanguage(event.target.value)}
-                        disabled={!selectedModel}
-                      >
-                        {(selectedModel?.languages ?? ['en']).map((code) => (
-                          <option key={code} value={code}>
-                            {languageName(code)}
+                      {installed.length === 0 ? (
+                        <option value="">No models installed</option>
+                      ) : (
+                        installed.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
                           </option>
-                        ))}
-                      </Select>
-                    </Field>
+                        ))
+                      )}
+                    </Select>
+                  </Field>
 
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between text-sm text-ink">
-                        <span>Speed</span>
-                        <span className="tabular-nums text-ink-soft">
-                          {settings.speed.toFixed(2)}×
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0.5}
-                        max={1.5}
-                        step={0.05}
-                        value={settings.speed}
-                        onChange={(event) =>
-                          updateSettings({ speed: Number(event.target.value) })
-                        }
-                        aria-label="Speed"
-                        className="h-1.5 w-full cursor-pointer accent-accent"
-                      />
-                    </div>
-
-                    <Button
-                      block
-                      onClick={() => void generate()}
-                      disabled={!canGenerate}
+                  <Field
+                    label="Voice"
+                    hint={
+                      selectedVoice?.prompt
+                        ? selectedVoice.prompt.length > 100
+                          ? `${selectedVoice.prompt.slice(0, 97)}…`
+                          : selectedVoice.prompt
+                        : selectedModel?.voiceMode === 'clone'
+                          ? 'Cloned voices land with the voice library.'
+                          : undefined
+                    }
+                  >
+                    <Select
+                      value={selectedVoice?.id ?? ''}
+                      onChange={(event) =>
+                        updateSettings({ voiceId: event.target.value })
+                      }
+                      disabled={voiceOptions.length === 0}
                     >
-                      {generating ? 'Adding to queue…' : 'Generate'}
-                    </Button>
+                      {voiceOptions.length === 0 ? (
+                        <option value="">No voices</option>
+                      ) : (
+                        voiceOptions.map((voice) => (
+                          <option key={voice.id} value={voice.id}>
+                            {voice.name} · {voice.language.toUpperCase()}
+                          </option>
+                        ))
+                      )}
+                    </Select>
+                  </Field>
 
-                    {generateError ? (
-                      <p className="text-xs text-danger">{generateError}</p>
-                    ) : null}
-                  </Card>
+                  <Field label="Language">
+                    <Select
+                      value={language}
+                      onChange={(event) => chooseLanguage(event.target.value)}
+                      disabled={!selectedModel}
+                    >
+                      {(selectedModel?.languages ?? ['en']).map((code) => (
+                        <option key={code} value={code}>
+                          {languageName(code)}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
 
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <SectionLabel>Takes</SectionLabel>
-                        <Badge className="tabular-nums">{jobs.length}</Badge>
-                      </div>
-                      <span className="text-xs text-ink-soft">
-                        One at a time
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-sm text-ink">
+                      <span>Speed</span>
+                      <span className="tabular-nums text-ink-soft">
+                        {settings.speed.toFixed(2)}×
                       </span>
                     </div>
+                    <input
+                      type="range"
+                      min={0.5}
+                      max={1.5}
+                      step={0.05}
+                      value={settings.speed}
+                      onChange={(event) =>
+                        updateSettings({ speed: Number(event.target.value) })
+                      }
+                      aria-label="Speed"
+                      className="h-1.5 w-full cursor-pointer accent-accent"
+                    />
+                  </div>
 
-                    {jobs.length === 0 ? (
-                      <p className="rounded-lg border border-dashed border-line-strong px-3 py-6 text-center text-xs text-ink-soft">
-                        No takes yet. Generate a voice to see it here.
-                      </p>
-                    ) : (
-                      <ul className="flex flex-col gap-2">
-                        {jobs.map((job) => {
-                          const model = models.find(
-                            (item) => item.id === job.modelId,
-                          );
-                          const voice = model?.voices.find(
-                            (item) => item.id === job.voiceId,
-                          );
+                  <Button
+                    block
+                    onClick={() => void generate()}
+                    disabled={!canGenerate}
+                  >
+                    {generating ? 'Adding to queue…' : 'Generate'}
+                  </Button>
 
-                          return (
-                            <li
-                              key={job.id}
-                              title={job.script}
-                              className="flex items-center gap-2.5 rounded-lg bg-surface p-2.5 shadow-1"
-                            >
+                  {actionError ? (
+                    <p className="text-xs text-danger">{actionError}</p>
+                  ) : null}
+                </Card>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <SectionLabel>Takes</SectionLabel>
+                    <Badge className="tabular-nums">{jobs.length}</Badge>
+                  </div>
+                  <span className="text-xs text-ink-soft">One at a time</span>
+                </div>
+
+                {jobs.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-line-strong px-6 py-10 text-center text-xs text-ink-soft">
+                    No takes yet. Generate a voice to see it here.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-3">
+                    {jobs.map((job) => {
+                      const model = models.find(
+                        (item) => item.id === job.modelId,
+                      );
+                      const voice = model?.voices.find(
+                        (item) => item.id === job.voiceId,
+                      );
+
+                      return (
+                        <li
+                          key={job.id}
+                          title={job.error ?? job.script}
+                          className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-1"
+                        >
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
+                            <AudioLines className="size-5" aria-hidden="true" />
+                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-medium text-ink-strong">
+                                {voice?.name ?? job.voiceId}
+                              </p>
                               <Badge tone={statusTone(job.status)}>
                                 {job.status}
                               </Badge>
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-ink-soft">
+                              {model?.name ?? job.modelId} ·{' '}
+                              {job.language.toUpperCase()} ·{' '}
+                              {job.speed.toFixed(2)}×
+                            </p>
+                          </div>
 
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm text-ink">
-                                  {voice?.name ?? job.voiceId}
-                                </p>
-                                <p className="truncate text-xs text-ink-soft">
-                                  {model?.name ?? job.modelId} ·{' '}
-                                  {job.language.toUpperCase()} ·{' '}
-                                  {job.speed.toFixed(2)}×
-                                </p>
-                              </div>
+                          <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-ink-soft">
+                            {job.status === 'running'
+                              ? `${job.progress}%`
+                              : job.durationMs
+                                ? formatDuration(job.durationMs)
+                                : '—'}
+                          </span>
 
-                              <span className="shrink-0 text-xs tabular-nums text-ink-soft">
-                                {job.status === 'running'
-                                  ? `${job.progress}%`
-                                  : job.durationMs
-                                    ? formatDuration(job.durationMs)
-                                    : '—'}
-                              </span>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {job.status === 'done' ? (
+                              <IconButton
+                                label="Play take"
+                                onClick={() => void playJob(job.id)}
+                              >
+                                <Play className="size-4" />
+                              </IconButton>
+                            ) : null}
 
-                              {job.status === 'done' ? (
-                                <IconButton
-                                  label="Play take"
-                                  onClick={() => void playJob(job.id)}
-                                >
-                                  <Play className="size-3.5" />
-                                </IconButton>
-                              ) : null}
+                            {job.status === 'failed' ||
+                            job.status === 'canceled' ? (
+                              <IconButton
+                                label="Retry take"
+                                onClick={() => void retryJob(job.id)}
+                              >
+                                <RotateCcw className="size-4" />
+                              </IconButton>
+                            ) : null}
 
-                              {job.status === 'queued' ||
-                              job.status === 'running' ? (
-                                <IconButton
-                                  label="Cancel take"
-                                  onClick={() => void cancelJob(job.id)}
-                                >
-                                  <X className="size-3.5" />
-                                </IconButton>
-                              ) : null}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                </div>
+                            {job.status === 'queued' ||
+                            job.status === 'running' ? (
+                              <IconButton
+                                label="Cancel take"
+                                onClick={() => void cancelJob(job.id)}
+                              >
+                                <X className="size-4" />
+                              </IconButton>
+                            ) : null}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </>
           )}

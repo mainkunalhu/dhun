@@ -30,4 +30,5 @@ export type JobsApi = {
   create(projectId: string, input: NewJob): Promise<Job>;
   cancel(projectId: string, jobId: string): Promise<Job>;
   play(projectId: string, jobId: string): Promise<void>;
+  retry(projectId: string, jobId: string): Promise<Job>;
 };

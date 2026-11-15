@@ -94,5 +94,23 @@ export function registerProjectHandlers(): void {
     },
   );
 
+  ipcMain.handle(
+    'jobs:retry',
+    async (_event, projectId: string, jobId: string) => {
+      const job = await store.getJob(projectId, jobId);
+      if (job.status !== 'failed' && job.status !== 'canceled') return job;
+
+      const next = await store.updateJob(projectId, jobId, {
+        status: 'queued',
+        progress: 0,
+        error: null,
+        outputPath: null,
+        durationMs: null,
+      });
+      queue.enqueue(projectId, jobId);
+      return next;
+    },
+  );
+
   void queue.recover();
 }

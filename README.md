@@ -47,7 +47,9 @@ The sidecar needs a Python 3.12 environment with `mlx-audio`, `numpy` and
 
 ```bash
 uv venv "$HOME/Library/Application Support/Dhun/runtime"
-uv pip install --python "$HOME/Library/Application Support/Dhun/runtime/bin/python" mlx-audio
+uv pip install --python "$HOME/Library/Application Support/Dhun/runtime/bin/python" mlx-audio "misaki[en]"
+uv pip install --python "$HOME/Library/Application Support/Dhun/runtime/bin/python" \
+  "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
 
 cat > "$HOME/Library/Application Support/Dhun/engine.json" <<EOF
 { "python": "$HOME/Library/Application Support/Dhun/runtime/bin/python" }

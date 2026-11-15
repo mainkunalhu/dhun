@@ -24,6 +24,8 @@ const jobs: JobsApi = {
   cancel: (projectId, jobId) =>
     ipcRenderer.invoke('jobs:cancel', projectId, jobId),
   play: (projectId, jobId) => ipcRenderer.invoke('jobs:play', projectId, jobId),
+  retry: (projectId, jobId) =>
+    ipcRenderer.invoke('jobs:retry', projectId, jobId),
 };
 
 const models: ModelsApi = {
