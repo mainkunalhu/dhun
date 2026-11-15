@@ -234,6 +234,7 @@ export function Projects() {
   const [pending, setPending] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -351,7 +352,13 @@ export function Projects() {
       <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
 
       <div className="relative min-h-0 flex-1">
-        <div className="h-full overflow-y-auto">
+        <div
+          className="h-full overflow-y-auto"
+          onScroll={(event) => {
+            const next = event.currentTarget.scrollTop > 0;
+            setScrolled((current) => (current === next ? current : next));
+          }}
+        >
           <div className="mx-auto w-full max-w-[56rem] px-8 pb-10">
             {/* Top breathing room that scrolls away; header and search stay put. */}
             <div className="h-4" aria-hidden="true" />
@@ -408,10 +415,12 @@ export function Projects() {
                   </div>
                 )}
               </div>
-              <div
-                className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-canvas to-transparent"
-                aria-hidden="true"
-              />
+              {scrolled ? (
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-full h-6 bg-gradient-to-b from-canvas to-transparent"
+                  aria-hidden="true"
+                />
+              ) : null}
             </div>
 
             {error ? (
