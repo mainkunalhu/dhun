@@ -21,7 +21,7 @@ const config: ForgeConfig = {
     icon: brandIcon('icon'),
     // The Vite plugin only ships .vite inside the asar, so the window icon is
     // copied separately for Linux (and for app.dock in a packaged dev build).
-    extraResource: [brandIcon('icon.png')],
+    extraResource: [brandIcon('icon.png'), path.join(projectRoot, 'engine')],
   },
   rebuildConfig: {},
   makers: [

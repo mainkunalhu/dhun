@@ -10,6 +10,8 @@ export type Job = {
   script: string;
   status: JobStatus;
   progress: number;
+  outputPath: string | null;
+  durationMs: number | null;
   error: string | null;
   createdAt: string;
   updatedAt: string;
@@ -27,4 +29,5 @@ export type JobsApi = {
   list(projectId: string): Promise<Job[]>;
   create(projectId: string, input: NewJob): Promise<Job>;
   cancel(projectId: string, jobId: string): Promise<Job>;
+  play(projectId: string, jobId: string): Promise<void>;
 };

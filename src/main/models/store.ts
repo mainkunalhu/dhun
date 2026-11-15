@@ -251,6 +251,15 @@ export function createModelManager({
     return model;
   }
 
+  async function get(id: string): Promise<CatalogModel | null> {
+    if (!ID_PATTERN.test(id)) return null;
+    return (await catalog()).find((item) => item.id === id) ?? null;
+  }
+
+  function modelPath(id: string): string {
+    return modelDir(id);
+  }
+
   async function install(id: string): Promise<void> {
     const model = await find(id);
 
@@ -387,5 +396,14 @@ export function createModelManager({
     await shell.openPath(modelDir(id));
   }
 
-  return { list, install, cancel, remove, importJson, reveal };
+  return {
+    list,
+    get,
+    modelPath,
+    install,
+    cancel,
+    remove,
+    importJson,
+    reveal,
+  };
 }

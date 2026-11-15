@@ -24,5 +24,15 @@ export function useJobs(projectId: string | undefined) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const active = jobs.some(
+      (job) => job.status === 'queued' || job.status === 'running',
+    );
+    if (!active) return;
+
+    const timer = window.setInterval(() => void refresh(), 900);
+    return () => window.clearInterval(timer);
+  }, [jobs, refresh]);
+
   return { jobs, loading, error, refresh };
 }

@@ -293,6 +293,10 @@ export function createProjectStore(root: string) {
       script: typeof value.script === 'string' ? value.script : '',
       status,
       progress: typeof value.progress === 'number' ? value.progress : 0,
+      outputPath:
+        typeof value.outputPath === 'string' ? value.outputPath : null,
+      durationMs:
+        typeof value.durationMs === 'number' ? value.durationMs : null,
       error: typeof value.error === 'string' ? value.error : null,
       createdAt: asString(value.createdAt, 'created at'),
       updatedAt: asString(value.updatedAt, 'updated at'),
@@ -365,6 +369,8 @@ export function createProjectStore(root: string) {
       script,
       status: 'queued',
       progress: 0,
+      outputPath: null,
+      durationMs: null,
       error: null,
       createdAt: now,
       updatedAt: now,
@@ -372,6 +378,23 @@ export function createProjectStore(root: string) {
 
     await writeJob(folder, job);
     return job;
+  }
+
+  async function getJob(projectId: string, jobId: string): Promise<Job> {
+    const { folder } = await locate(projectId);
+    return readJob(folder, jobId);
+  }
+
+  async function updateJob(
+    projectId: string,
+    jobId: string,
+    patch: Partial<Job>,
+  ): Promise<Job> {
+    const { folder } = await locate(projectId);
+    const job = await readJob(folder, jobId);
+    const next = { ...job, ...patch, updatedAt: new Date().toISOString() };
+    await writeJob(folder, next);
+    return next;
   }
 
   async function cancelJob(projectId: string, jobId: string): Promise<Job> {
@@ -398,6 +421,8 @@ export function createProjectStore(root: string) {
     saveScript,
     saveSettings,
     listJobs,
+    getJob,
+    updateJob,
     createJob,
     cancelJob,
   };
