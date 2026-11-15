@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import {
+  ChevronRight,
   Folder,
   Pencil,
   Plus,
@@ -54,7 +55,7 @@ function ProjectRow({
     <li className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-1 transition-colors duration-150 hover:bg-raised">
       <Link
         to={`/projects/${project.id}`}
-        className="flex min-w-0 flex-1 items-center gap-4"
+        className="group flex min-w-0 flex-1 items-center gap-4"
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
           <Folder className="size-5" aria-hidden="true" />
@@ -68,6 +69,11 @@ function ProjectRow({
             {projectMeta(project)}
           </p>
         </div>
+
+        <ChevronRight
+          className="size-4 shrink-0 text-ink-faint transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-ink-soft"
+          aria-hidden="true"
+        />
       </Link>
 
       <div className="flex shrink-0 items-center gap-1">
@@ -235,6 +241,21 @@ export function Projects() {
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // The project switcher links here with ?new=1 so "New project" lands on an
+  // open dialog instead of making the user find the button again.
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+
+    setDialogError(null);
+    setActionError(null);
+    setDialog({ kind: 'create' });
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('new');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();

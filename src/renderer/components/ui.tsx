@@ -81,6 +81,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       aria-pressed={active}
+      title={label}
       className={cn(
         'inline-flex size-7 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors duration-150 enabled:hover:bg-raised enabled:hover:text-ink-strong enabled:active:bg-sunken disabled:cursor-not-allowed disabled:text-ink-faint',
         active && 'text-accent-text',

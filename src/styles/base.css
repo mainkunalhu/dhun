@@ -119,3 +119,14 @@
     }
   }
 }
+
+/* A tiny VU meter for takes that are actively rendering. */
+@keyframes dhun-level {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

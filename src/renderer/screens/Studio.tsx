@@ -3,13 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router';
 import {
   AudioLines,
   Download,
-  Folder,
   FolderInput,
   Pause,
   Pencil,
   Play,
   Trash2,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 import type { Job, JobStatus } from '../../shared/job';
 import {
@@ -30,6 +30,8 @@ import {
   Textarea,
 } from '../components/ui';
 import { Modal } from '../components/Modal';
+import { ProjectSwitcher } from '../components/ProjectSwitcher';
+import { cn } from '../lib/cn';
 import { formatRelative } from '../lib/format';
 import { useJobs } from '../lib/useJobs';
 import { useModelsContext } from '../lib/models-context';
@@ -80,6 +82,34 @@ function statusTone(
     default:
       return 'info';
   }
+}
+
+const STATUS_LABELS: Record<JobStatus, string> = {
+  queued: 'Queued',
+  running: 'Rendering',
+  done: 'Ready',
+  failed: 'Failed',
+  canceled: 'Canceled',
+};
+
+/** Four little bars that move while a take is rendering. */
+function ActivityBars() {
+  const heights = [7, 14, 10, 5];
+
+  return (
+    <span className="flex h-4 items-end gap-[3px]" aria-hidden="true">
+      {heights.map((height, index) => (
+        <span
+          key={index}
+          className="w-[3px] origin-bottom animate-[dhun-level_900ms_ease-in-out_infinite] rounded-full bg-accent"
+          style={{
+            height: `${height}px`,
+            animationDelay: `${index * 120}ms`,
+          }}
+        />
+      ))}
+    </span>
+  );
 }
 
 function wordCount(script: string): number {
@@ -459,24 +489,27 @@ export function Studio({
             </div>
           ) : (
             <>
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
-                  {library ? (
-                    <AudioLines className="size-5" aria-hidden="true" />
-                  ) : (
-                    <Folder className="size-5" aria-hidden="true" />
-                  )}
-                </span>
-                <div className="min-w-0">
-                  <h1 className="truncate text-xl font-semibold tracking-tight text-ink-strong">
-                    {library ? 'Library' : project.name}
-                  </h1>
-                  <p className="text-xs text-ink-soft">
-                    {library
+              <div className="flex items-center justify-between gap-4">
+                <ProjectSwitcher
+                  currentId={project.id}
+                  currentName={library ? 'Library' : project.name}
+                  library={library}
+                  meta={
+                    library
                       ? 'Takes that are not attached to a project'
-                      : `Created ${formatRelative(project.createdAt)}`}
-                  </p>
-                </div>
+                      : `Created ${formatRelative(project.createdAt)}`
+                  }
+                />
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/projects')}
+                  title="Close this project"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                  Close
+                </Button>
               </div>
 
               {!modelsLoading && installed.length === 0 ? (
@@ -665,137 +698,166 @@ export function Studio({
                         <li
                           key={job.id}
                           title={job.error ?? job.script}
-                          className="flex items-center gap-4 rounded-xl bg-surface p-4 shadow-1"
+                          className={cn(
+                            'overflow-hidden rounded-xl bg-surface shadow-1 transition-shadow',
+                            job.status === 'running' && 'ring-1 ring-accent/25',
+                          )}
                         >
-                          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
-                            <AudioLines className="size-5" aria-hidden="true" />
-                          </span>
+                          <div className="flex items-center gap-4 p-4">
+                            <span
+                              className={cn(
+                                'flex size-10 shrink-0 items-center justify-center rounded-lg shadow-inset transition-colors',
+                                job.status === 'running'
+                                  ? 'bg-accent-soft text-accent-text'
+                                  : 'bg-sunken text-ink-soft',
+                              )}
+                            >
+                              {job.status === 'running' ? (
+                                <ActivityBars />
+                              ) : (
+                                <AudioLines
+                                  className="size-5"
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </span>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-medium text-ink-strong">
-                                {job.name || voice?.name || job.voiceId}
-                              </p>
-                              <Badge tone={statusTone(job.status)}>
-                                {job.status}
-                              </Badge>
-                            </div>
-                            <p className="mt-0.5 truncate text-xs text-ink-soft">
-                              {voice?.name ?? job.voiceId} ·{' '}
-                              {model?.name ?? job.modelId} ·{' '}
-                              {job.language.toUpperCase()} ·{' '}
-                              {job.speed.toFixed(2)}×
-                            </p>
-
-                            {job.status === 'running' ? (
-                              <div className="mt-2 flex items-center gap-2">
-                                <Progress value={job.progress} />
-                                <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-soft">
-                                  {job.progress}%
-                                </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-medium text-ink-strong">
+                                  {job.name || voice?.name || job.voiceId}
+                                </p>
+                                <Badge tone={statusTone(job.status)}>
+                                  {STATUS_LABELS[job.status]}
+                                </Badge>
                               </div>
-                            ) : null}
-                          </div>
+                              <p className="mt-0.5 truncate text-xs text-ink-soft">
+                                {voice?.name ?? job.voiceId} ·{' '}
+                                {model?.name ?? job.modelId} ·{' '}
+                                {job.language.toUpperCase()} ·{' '}
+                                {job.speed.toFixed(2)}×
+                              </p>
+                            </div>
 
-                          <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-ink-soft">
-                            {job.durationMs
-                              ? formatDuration(job.durationMs)
-                              : '—'}
-                          </span>
-
-                          <div className="flex shrink-0 items-center gap-1">
-                            {job.status === 'done' ? (
-                              <IconButton
-                                label={isPlaying ? 'Pause take' : 'Play take'}
-                                active={isPlaying}
-                                onClick={() =>
-                                  player.play({
-                                    id: job.id,
-                                    title:
-                                      job.name || voice?.name || job.voiceId,
-                                    subtitle: `${voice?.name ?? job.voiceId} · ${model?.name ?? job.modelId} · ${job.language.toUpperCase()}`,
-                                    durationMs: job.durationMs ?? 0,
-                                  })
-                                }
-                              >
-                                {isPlaying ? (
-                                  <Pause className="size-4" />
-                                ) : (
-                                  <Play className="size-4" />
-                                )}
-                              </IconButton>
+                            {job.durationMs ? (
+                              <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-ink-soft">
+                                {formatDuration(job.durationMs)}
+                              </span>
                             ) : null}
 
-                            {job.status === 'done' ||
-                            job.status === 'failed' ||
-                            job.status === 'canceled' ? (
-                              <>
+                            <div className="flex shrink-0 items-center gap-1">
+                              {job.status === 'done' ? (
                                 <IconButton
-                                  label="Rename take"
-                                  onClick={() => {
-                                    setActionError(null);
-                                    setRenameValue(
-                                      job.name || voice?.name || '',
-                                    );
-                                    setRenaming(job);
-                                  }}
+                                  label={isPlaying ? 'Pause take' : 'Play take'}
+                                  active={isPlaying}
+                                  onClick={() =>
+                                    player.play({
+                                      id: job.id,
+                                      title:
+                                        job.name || voice?.name || job.voiceId,
+                                      subtitle: `${voice?.name ?? job.voiceId} · ${model?.name ?? job.modelId} · ${job.language.toUpperCase()}`,
+                                      durationMs: job.durationMs ?? 0,
+                                    })
+                                  }
                                 >
-                                  <Pencil className="size-4" />
+                                  {isPlaying ? (
+                                    <Pause className="size-4" />
+                                  ) : (
+                                    <Play className="size-4" />
+                                  )}
                                 </IconButton>
+                              ) : null}
 
-                                {job.status === 'done' ? (
+                              {job.status === 'done' ||
+                              job.status === 'failed' ||
+                              job.status === 'canceled' ? (
+                                <>
                                   <IconButton
-                                    label="Export take"
-                                    onClick={() => void exportTake(job)}
+                                    label="Rename take"
+                                    onClick={() => {
+                                      setActionError(null);
+                                      setRenameValue(
+                                        job.name || voice?.name || '',
+                                      );
+                                      setRenaming(job);
+                                    }}
                                   >
-                                    <Download className="size-4" />
+                                    <Pencil className="size-4" />
                                   </IconButton>
-                                ) : null}
 
-                                <IconButton
-                                  label="Move take"
-                                  onClick={() => {
-                                    setActionError(null);
-                                    setMoving(job);
-                                  }}
+                                  {job.status === 'done' ? (
+                                    <IconButton
+                                      label="Export take"
+                                      onClick={() => void exportTake(job)}
+                                    >
+                                      <Download className="size-4" />
+                                    </IconButton>
+                                  ) : null}
+
+                                  <IconButton
+                                    label="Move take"
+                                    onClick={() => {
+                                      setActionError(null);
+                                      setMoving(job);
+                                    }}
+                                  >
+                                    <FolderInput className="size-4" />
+                                  </IconButton>
+                                  <IconButton
+                                    label="Delete take"
+                                    tone="danger"
+                                    onClick={() => {
+                                      setActionError(null);
+                                      setDeleting(job);
+                                    }}
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </IconButton>
+                                </>
+                              ) : null}
+
+                              {job.status === 'queued' ||
+                              job.status === 'running' ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => void cancelJob(job.id)}
                                 >
-                                  <FolderInput className="size-4" />
-                                </IconButton>
-                                <IconButton
-                                  label="Delete take"
-                                  tone="danger"
-                                  onClick={() => {
-                                    setActionError(null);
-                                    setDeleting(job);
-                                  }}
+                                  Cancel
+                                </Button>
+                              ) : null}
+
+                              {job.status === 'failed' ||
+                              job.status === 'canceled' ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => void retryJob(job.id)}
                                 >
-                                  <Trash2 className="size-4" />
-                                </IconButton>
-                              </>
-                            ) : null}
-
-                            {job.status === 'queued' ||
-                            job.status === 'running' ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => void cancelJob(job.id)}
-                              >
-                                Cancel
-                              </Button>
-                            ) : null}
-
-                            {job.status === 'failed' ||
-                            job.status === 'canceled' ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => void retryJob(job.id)}
-                              >
-                                Retry
-                              </Button>
-                            ) : null}
+                                  Retry
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
+
+                          {job.status === 'running' ? (
+                            <div className="flex items-center gap-3 border-t border-line px-4 py-2.5">
+                              <Progress value={job.progress} />
+                              <span className="w-9 shrink-0 text-right font-mono text-xs tabular-nums text-accent-text">
+                                {job.progress}%
+                              </span>
+                            </div>
+                          ) : job.status === 'queued' ? (
+                            <div className="flex items-center gap-2 border-t border-line px-4 py-2.5">
+                              <span
+                                className="size-1.5 animate-pulse rounded-full bg-ink-faint"
+                                aria-hidden="true"
+                              />
+                              <span className="text-xs text-ink-soft">
+                                Waiting for the current render to finish
+                              </span>
+                            </div>
+                          ) : null}
                         </li>
                       );
                     })}
