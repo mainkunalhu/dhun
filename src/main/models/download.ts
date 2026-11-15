@@ -22,7 +22,7 @@ function isNeeded(filePath: string): boolean {
   if (filePath === '.gitattributes') return false;
   if (/^(README|LICENSE)/i.test(name)) return false;
   if (
-    /\.(md|png|jpe?g|webp|gif|svg|wav|mp3|mp4|mov|webm|mkv|h5|onnx)$/i.test(
+    /\.(md|png|jpe?g|webp|gif|svg|wav|mp3|mp4|mov|webm|mkv|h5|onnx|pth)$/i.test(
       filePath,
     )
   ) {

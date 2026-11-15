@@ -1,5 +1,13 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { shell } from 'electron';
 import shippedCatalog from '../../../catalog/models.json';
@@ -124,10 +132,12 @@ function readImport(json: string): CatalogModel[] {
 export function createModelManager({
   modelsRoot,
   localCatalogPath,
+  hfCacheRoot = path.join(homedir(), '.cache/huggingface/hub'),
   onProgress,
 }: {
   modelsRoot: string;
   localCatalogPath: string;
+  hfCacheRoot?: string;
   onProgress: (progress: ModelProgress) => void;
 }) {
   const downloads = new Map<string, DownloadState>();
@@ -159,28 +169,79 @@ export function createModelManager({
     return existsSync(path.join(modelDir(id), 'manifest.json'));
   }
 
+  async function snapshotFor(model: CatalogModel): Promise<string | null> {
+    const repoDir = path.join(
+      hfCacheRoot,
+      `models--${model.repo.replace('/', '--')}`,
+    );
+    let commit: string | null = null;
+
+    try {
+      commit = (
+        await readFile(path.join(repoDir, 'refs', model.revision), 'utf8')
+      ).trim();
+    } catch {
+      // Fall back to the newest snapshot below.
+    }
+
+    if (!commit) {
+      try {
+        const entries = (await readdir(path.join(repoDir, 'snapshots'))).sort();
+        commit = entries.at(-1) ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    if (!commit) return null;
+
+    const snapshot = path.join(repoDir, 'snapshots', commit);
+    return existsSync(snapshot) ? snapshot : null;
+  }
+
+  async function linkSnapshot(source: string, target: string): Promise<void> {
+    await mkdir(target, { recursive: true });
+
+    for (const entry of await readdir(source, { withFileTypes: true })) {
+      const from = path.join(source, entry.name);
+      const to = path.join(target, entry.name);
+
+      if (entry.isDirectory()) {
+        await linkSnapshot(from, to);
+      } else {
+        await symlink(from, to);
+      }
+    }
+  }
+
   async function list(): Promise<ModelSummary[]> {
     const models = await catalog();
 
-    return models
-      .map((model) => {
+    const summaries = await Promise.all(
+      models.map(async (model) => {
         const state = downloads.get(model.id);
+        const installed = isInstalled(model.id);
+
         return {
           ...model,
-          installed: isInstalled(model.id),
+          installed,
+          cached: !installed && (await snapshotFor(model)) !== null,
           installing: Boolean(state),
           downloadedBytes: state?.downloadedBytes ?? 0,
           totalBytes: state?.totalBytes ?? model.approxSizeBytes,
           error: state?.error ?? null,
         };
-      })
-      .sort((a, b) => {
-        if (a.installed !== b.installed) return a.installed ? -1 : 1;
-        if (a.engineStatus !== b.engineStatus) {
-          return a.engineStatus === 'ready' ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
+      }),
+    );
+
+    return summaries.sort((a, b) => {
+      if (a.installed !== b.installed) return a.installed ? -1 : 1;
+      if (a.cached !== b.cached) return a.cached ? -1 : 1;
+      if (a.engineStatus !== b.engineStatus) {
+        return a.engineStatus === 'ready' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
   }
 
   async function find(id: string): Promise<CatalogModel> {
@@ -198,6 +259,37 @@ export function createModelManager({
     }
     if (isInstalled(id) || downloads.has(id)) return;
 
+    const target = modelDir(id);
+    await rm(target, { recursive: true, force: true });
+
+    const snapshot = await snapshotFor(model);
+    if (snapshot) {
+      await linkSnapshot(snapshot, target);
+      await writeFile(
+        path.join(target, 'manifest.json'),
+        `${JSON.stringify(
+          {
+            id,
+            repo: model.repo,
+            revision: model.revision,
+            installedAt: new Date().toISOString(),
+            linkedFrom: snapshot,
+            files: [],
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      );
+      onProgress({
+        id,
+        status: 'installed',
+        downloadedBytes: 0,
+        totalBytes: 0,
+      });
+      return;
+    }
+
     const controller = new AbortController();
     const state: DownloadState = {
       controller,
@@ -206,9 +298,6 @@ export function createModelManager({
       error: null,
     };
     downloads.set(id, state);
-
-    const target = modelDir(id);
-    await rm(target, { recursive: true, force: true });
 
     const report = () => {
       onProgress({

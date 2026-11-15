@@ -297,6 +297,9 @@ export function Models() {
                             {model.installed ? (
                               <Badge tone="success">Installed</Badge>
                             ) : null}
+                            {model.cached ? (
+                              <Badge tone="info">In HF cache</Badge>
+                            ) : null}
                           </div>
                           <p className="truncate font-mono text-xs text-ink-soft">
                             {model.repo}
@@ -347,7 +350,7 @@ export function Models() {
                                 className="size-3.5"
                                 aria-hidden="true"
                               />
-                              Download
+                              {model.cached ? 'Use local copy' : 'Download'}
                             </Button>
                           )}
                         </div>

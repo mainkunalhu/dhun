@@ -1,20 +1,21 @@
-import { NavLink } from 'react-router';
-import { Box, FolderOpen, ShieldCheck } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
+import { AudioLines, Box, FolderOpen, ShieldCheck } from 'lucide-react';
 import appIcon from '../../../assets/brand/icon-rounded.png';
 import { Progress } from '../components/ui';
 import { cn } from '../lib/cn';
 import { useModelsContext } from '../lib/models-context';
 
-function navClass({ isActive }: { isActive: boolean }): string {
+function navClass(active: boolean): string {
   return cn(
     'flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors duration-150',
-    isActive
+    active
       ? 'bg-raised font-medium text-ink-strong'
       : 'text-ink-soft hover:bg-surface hover:text-ink-strong',
   );
 }
 
 export function Sidebar() {
+  const { pathname } = useLocation();
   const { models } = useModelsContext();
   const active = models.filter((model) => model.installing);
 
@@ -35,14 +36,21 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-6 flex flex-col gap-1 px-2" aria-label="Main">
-        <NavLink to="/projects" className={navClass}>
+        <Link
+          to="/studio"
+          className={navClass(pathname.startsWith('/projects/'))}
+        >
+          <AudioLines className="size-4" aria-hidden="true" />
+          Studio
+        </Link>
+        <Link to="/projects" className={navClass(pathname === '/projects')}>
           <FolderOpen className="size-4" aria-hidden="true" />
           Projects
-        </NavLink>
-        <NavLink to="/models" className={navClass}>
+        </Link>
+        <Link to="/models" className={navClass(pathname === '/models')}>
           <Box className="size-4" aria-hidden="true" />
           Models
-        </NavLink>
+        </Link>
       </nav>
 
       <div className="mt-auto px-3 pb-3">

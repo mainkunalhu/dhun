@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Folder, TriangleAlert } from 'lucide-react';
-import type { Job, JobStatus } from '../../shared/job';
+import type { JobStatus } from '../../shared/job';
 import type { ProjectSettings, ProjectSummary } from '../../shared/project';
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  Field,
-  SectionLabel,
-  Select,
-  Textarea,
-} from '../components/ui';
+import { Badge, Button, Select, Textarea } from '../components/ui';
 import { formatRelative } from '../lib/format';
 import { useJobs } from '../lib/useJobs';
 import { useModelsContext } from '../lib/models-context';
@@ -74,40 +65,12 @@ function estimate(words: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function JobRow({
-  job,
-  modelName,
-  voiceName,
-  onCancel,
-}: {
-  job: Job;
-  modelName: string;
-  voiceName: string;
-  onCancel: () => void;
-}) {
-  return (
-    <li className="flex items-center gap-3 rounded-lg bg-sunken/50 px-3 py-2">
-      <Badge tone={statusTone(job.status)}>{job.status}</Badge>
-      <span className="min-w-0 flex-1 truncate text-sm text-ink">
-        {modelName} · {voiceName}
-      </span>
-      <span className="shrink-0 text-xs tabular-nums text-ink-soft">
-        {job.language.toUpperCase()} · {job.speed.toFixed(2)}×
-      </span>
-      {job.status === 'queued' || job.status === 'running' ? (
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-      ) : null}
-    </li>
-  );
-}
-
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { models, loading: modelsLoading } = useModelsContext();
   const { jobs, refresh: refreshJobs } = useJobs(id);
+  const threadRef = useRef<HTMLDivElement>(null);
 
   const [project, setProject] = useState<ProjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +104,12 @@ export function ProjectDetail() {
         setScript(next.script);
         setSettings(next.settings);
         setError(null);
+
+        try {
+          localStorage.setItem('dhun.lastProject', next.id);
+        } catch {
+          /* storage can be unavailable */
+        }
       })
       .catch((cause: unknown) => {
         if (!alive) return;
@@ -208,6 +177,11 @@ export function ProjectDetail() {
 
     return () => window.clearTimeout(timer);
   }, [settings, project]);
+
+  useEffect(() => {
+    const node = threadRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [jobs.length]);
 
   const installed = useMemo(
     () =>
@@ -301,60 +275,42 @@ export function ProjectDetail() {
       await window.dhun.jobs.cancel(project.id, jobId);
       await refreshJobs();
     } catch {
-      // The list refresh below shows the current state either way.
       await refreshJobs();
     }
   };
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-5 px-8 py-10">
+      <div className="min-h-0 flex-1 overflow-y-auto" ref={threadRef}>
+        <div className="mx-auto flex w-full max-w-[52rem] flex-col gap-6 px-8 py-10">
           {loading ? (
-            <p className="mt-4 text-sm text-ink-soft">Opening project…</p>
+            <p className="text-sm text-ink-soft">Opening project…</p>
           ) : !project ? (
-            <div className="mt-4">
-              <EmptyState
-                icon={<TriangleAlert className="size-5" aria-hidden="true" />}
-                title="Project not found"
-                action={
-                  <Button
-                    className="mt-2"
-                    onClick={() => navigate('/projects')}
-                  >
-                    Back to projects
-                  </Button>
-                }
-              >
+            <div className="flex flex-col items-start gap-3">
+              <h1 className="text-xl font-semibold tracking-tight text-ink-strong">
+                Project not found
+              </h1>
+              <p className="text-sm text-ink-soft">
                 {error ?? 'This project folder may have been moved or deleted.'}
-              </EmptyState>
+              </p>
+              <Button onClick={() => navigate('/projects')}>
+                Back to projects
+              </Button>
             </div>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
-                    <Folder className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <h1 className="truncate text-xl font-semibold tracking-tight text-ink-strong">
-                      {project.name}
-                    </h1>
-                    <p className="text-xs text-ink-soft">
-                      Created {formatRelative(project.createdAt)}
-                    </p>
-                  </div>
-                </div>
-
-                <span className="shrink-0 pt-1 text-xs text-ink-soft">
-                  {saveError ? (
-                    <span className="text-danger">{saveError}</span>
-                  ) : saving ? (
-                    'Saving…'
-                  ) : savedAt ? (
-                    'Saved'
-                  ) : null}
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-sunken text-ink-soft shadow-inset">
+                  <Folder className="size-5" aria-hidden="true" />
                 </span>
+                <div className="min-w-0">
+                  <h1 className="truncate text-xl font-semibold tracking-tight text-ink-strong">
+                    {project.name}
+                  </h1>
+                  <p className="text-xs text-ink-soft">
+                    Created {formatRelative(project.createdAt)}
+                  </p>
+                </div>
               </div>
 
               {!modelsLoading && installed.length === 0 ? (
@@ -371,180 +327,194 @@ export function ProjectDetail() {
                 </div>
               ) : null}
 
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <div className="flex min-w-0 flex-col gap-2">
-                  <Textarea
-                    value={script}
-                    onChange={(event) => setScript(event.target.value)}
-                    placeholder="Paste your script here. Blank lines separate segments."
-                    aria-label="Script"
-                    className="min-h-[24rem] resize-y text-base leading-[1.7]"
-                  />
-                  <div className="flex items-center justify-between text-xs text-ink-soft">
-                    <span className="tabular-nums">
-                      {words} {words === 1 ? 'word' : 'words'} · ~
-                      {estimate(words)}
-                    </span>
-                    <span>Autosaves to the project folder</span>
-                  </div>
+              {jobs.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-16 text-center">
+                  <p className="text-sm font-medium text-ink-strong">
+                    No takes yet
+                  </p>
+                  <p className="max-w-[42ch] text-xs leading-[1.55] text-ink-soft">
+                    Write a script below and generate your first take. Change
+                    the voice and generate again to audition another one.
+                  </p>
                 </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {[...jobs].reverse().map((job) => {
+                    const model = models.find(
+                      (item) => item.id === job.modelId,
+                    );
+                    const voice = model?.voices.find(
+                      (item) => item.id === job.voiceId,
+                    );
 
-                <Card className="flex flex-col gap-4 self-start">
-                  <SectionLabel>Render settings</SectionLabel>
+                    return (
+                      <div key={job.id} className="flex flex-col gap-2">
+                        <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-raised px-4 py-3 text-sm leading-[1.6] whitespace-pre-wrap text-ink selectable">
+                          {job.script}
+                        </div>
 
-                  <Field label="Model">
-                    <Select
-                      value={selectedModel?.id ?? ''}
-                      onChange={(event) => chooseModel(event.target.value)}
-                      disabled={installed.length === 0}
-                    >
-                      {installed.length === 0 ? (
-                        <option value="">No models installed</option>
-                      ) : (
-                        installed.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))
-                      )}
-                    </Select>
-                  </Field>
+                        <div className="flex items-center gap-3 self-start rounded-xl bg-surface p-3 shadow-1">
+                          <Badge tone={statusTone(job.status)}>
+                            {job.status}
+                          </Badge>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-ink">
+                              {model?.name ?? job.modelId} ·{' '}
+                              {voice?.name ?? job.voiceId}
+                            </p>
+                            <p className="text-xs tabular-nums text-ink-soft">
+                              {job.language.toUpperCase()} ·{' '}
+                              {job.speed.toFixed(2)}×
+                            </p>
+                          </div>
+                          {job.status === 'queued' ||
+                          job.status === 'running' ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => void cancelJob(job.id)}
+                            >
+                              Cancel
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
 
-                  <Field
-                    label="Voice"
-                    hint={
-                      selectedVoice?.prompt
-                        ? selectedVoice.prompt.length > 140
-                          ? `${selectedVoice.prompt.slice(0, 137)}…`
-                          : selectedVoice.prompt
-                        : selectedModel?.voiceMode === 'clone'
-                          ? 'Cloned voices land with the voice library.'
-                          : undefined
-                    }
-                  >
-                    <Select
-                      value={selectedVoice?.id ?? ''}
-                      onChange={(event) =>
-                        updateSettings({ voiceId: event.target.value })
-                      }
-                      disabled={voiceOptions.length === 0}
-                    >
-                      {voiceOptions.length === 0 ? (
-                        <option value="">No voices yet</option>
-                      ) : (
-                        voiceOptions.map((voice) => (
-                          <option key={voice.id} value={voice.id}>
-                            {voice.name} · {voice.language.toUpperCase()}
-                          </option>
-                        ))
-                      )}
-                    </Select>
-                  </Field>
-
-                  <Field label="Language">
-                    <Select
-                      value={language}
-                      onChange={(event) => chooseLanguage(event.target.value)}
-                      disabled={!selectedModel}
-                    >
-                      {(selectedModel?.languages ?? ['en']).map((code) => (
-                        <option key={code} value={code}>
-                          {languageName(code)}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-sm text-ink">
-                      <span>Speed</span>
-                      <span className="tabular-nums text-ink-soft">
-                        {settings.speed.toFixed(2)}×
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0.5}
-                      max={1.5}
-                      step={0.05}
-                      value={settings.speed}
-                      onChange={(event) =>
-                        updateSettings({ speed: Number(event.target.value) })
-                      }
-                      aria-label="Speed"
-                      className="h-1.5 w-full cursor-pointer accent-accent"
-                    />
-                  </div>
-
-                  <Button
-                    block
-                    onClick={() => void generate()}
-                    disabled={!canGenerate}
-                  >
-                    {generating ? 'Adding to queue…' : 'Generate'}
-                  </Button>
-
-                  {generateError ? (
-                    <p className="text-xs text-danger">{generateError}</p>
+                  {jobs.some((job) => job.status === 'queued') ? (
+                    <p className="text-center text-xs text-ink-soft">
+                      Queued takes wait for the voice engine.
+                    </p>
                   ) : null}
-
-                  <Link
-                    to="/models"
-                    className="text-center text-xs text-ink-soft transition-colors hover:text-ink-strong"
-                  >
-                    Manage models
-                  </Link>
-                </Card>
-              </div>
-
-              <Card className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <SectionLabel>Queue</SectionLabel>
-                    <Badge className="tabular-nums">{jobs.length}</Badge>
-                  </div>
-                  <span className="text-xs text-ink-soft">
-                    One render at a time
-                  </span>
                 </div>
-
-                {jobs.length === 0 ? (
-                  <p className="text-xs text-ink-soft">
-                    No renders yet. Generate a take to see it here.
-                  </p>
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {jobs.map((job) => {
-                      const model = models.find(
-                        (item) => item.id === job.modelId,
-                      );
-                      const voice = model?.voices.find(
-                        (item) => item.id === job.voiceId,
-                      );
-
-                      return (
-                        <JobRow
-                          key={job.id}
-                          job={job}
-                          modelName={model?.name ?? job.modelId}
-                          voiceName={voice?.name ?? job.voiceId}
-                          onCancel={() => void cancelJob(job.id)}
-                        />
-                      );
-                    })}
-                  </ul>
-                )}
-
-                {jobs.some((job) => job.status === 'queued') ? (
-                  <p className="text-xs text-ink-soft">
-                    Queued renders wait for the voice engine.
-                  </p>
-                ) : null}
-              </Card>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {project ? (
+        <div className="shrink-0 border-t border-line bg-canvas">
+          <div className="mx-auto w-full max-w-[52rem] px-8 py-4">
+            <Textarea
+              value={script}
+              onChange={(event) => setScript(event.target.value)}
+              placeholder="Write your script, then generate a take…"
+              aria-label="Script"
+              className="min-h-[5.5rem] resize-y text-sm leading-[1.65]"
+            />
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="w-44">
+                <Select
+                  value={selectedModel?.id ?? ''}
+                  onChange={(event) => chooseModel(event.target.value)}
+                  disabled={installed.length === 0}
+                  aria-label="Model"
+                >
+                  {installed.length === 0 ? (
+                    <option value="">No models installed</option>
+                  ) : (
+                    installed.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </div>
+
+              <div className="w-40">
+                <Select
+                  value={selectedVoice?.id ?? ''}
+                  onChange={(event) =>
+                    updateSettings({ voiceId: event.target.value })
+                  }
+                  disabled={voiceOptions.length === 0}
+                  aria-label="Voice"
+                >
+                  {voiceOptions.length === 0 ? (
+                    <option value="">No voices</option>
+                  ) : (
+                    voiceOptions.map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        {voice.name} · {voice.language.toUpperCase()}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </div>
+
+              <div className="w-32">
+                <Select
+                  value={language}
+                  onChange={(event) => chooseLanguage(event.target.value)}
+                  disabled={!selectedModel}
+                  aria-label="Language"
+                >
+                  {(selectedModel?.languages ?? ['en']).map((code) => (
+                    <option key={code} value={code}>
+                      {languageName(code)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-ink-soft">Speed</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={1.5}
+                  step={0.05}
+                  value={settings.speed}
+                  onChange={(event) =>
+                    updateSettings({ speed: Number(event.target.value) })
+                  }
+                  aria-label="Speed"
+                  className="h-1.5 w-24 cursor-pointer accent-accent"
+                />
+                <span className="w-10 text-right text-xs tabular-nums text-ink-soft">
+                  {settings.speed.toFixed(2)}×
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <span className="text-xs tabular-nums text-ink-soft">
+                {words} {words === 1 ? 'word' : 'words'} · ~{estimate(words)}
+              </span>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-ink-soft">
+                  {saveError ? (
+                    <span className="text-danger">{saveError}</span>
+                  ) : saving ? (
+                    'Saving…'
+                  ) : savedAt ? (
+                    'Saved'
+                  ) : (
+                    'Autosaves'
+                  )}
+                </span>
+                <Button
+                  size="lg"
+                  className="h-10 px-5"
+                  onClick={() => void generate()}
+                  disabled={!canGenerate}
+                >
+                  {generating ? 'Adding…' : 'Generate'}
+                </Button>
+              </div>
+            </div>
+
+            {generateError ? (
+              <p className="mt-2 text-xs text-danger">{generateError}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

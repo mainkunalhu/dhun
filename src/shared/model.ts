@@ -28,6 +28,8 @@ export type CatalogModel = {
 
 export type ModelSummary = CatalogModel & {
   installed: boolean;
+  /** Present in the Hugging Face cache and installable without downloading. */
+  cached: boolean;
   installing: boolean;
   downloadedBytes: number;
   totalBytes: number;

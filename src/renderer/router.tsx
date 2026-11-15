@@ -5,6 +5,7 @@ import { ProjectDetail } from './screens/ProjectDetail';
 import { Projects } from './screens/Projects';
 import { RouteError } from './screens/RouteError';
 import { Splash } from './screens/Splash';
+import { StudioRedirect } from './screens/StudioRedirect';
 
 /**
  * Hash routing, not history: the packaged app loads from file://, where the
@@ -20,6 +21,7 @@ export const router = createHashRouter([
     errorElement: <RouteError />,
     children: [
       { index: true, element: <Splash /> },
+      { path: 'studio', element: <StudioRedirect /> },
       { path: 'projects', element: <Projects /> },
       { path: 'projects/:id', element: <ProjectDetail /> },
       { path: 'models', element: <Models /> },

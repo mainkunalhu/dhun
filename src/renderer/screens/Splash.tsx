@@ -25,7 +25,7 @@ export function Splash() {
     } catch {
       /* storage can be unavailable; the session still moves on */
     }
-    navigate('/projects');
+    navigate('/studio');
   };
 
   const fade = 'transition-opacity duration-700 ease-soft';
