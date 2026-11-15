@@ -1,7 +1,7 @@
 {
   "name": "dhun",
   "productName": "Dhun",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Local-first voiceover studio: one script, every voice, English and Hinglish, entirely on your machine.",
   "keywords": [],
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
     "@electron-forge/maker-deb": "^8.0.1",
+    "@electron-forge/maker-dmg": "^8.0.1",
     "@electron-forge/maker-rpm": "^8.0.1",
     "@electron-forge/maker-squirrel": "^8.0.1",
     "@electron-forge/maker-zip": "^8.0.1",

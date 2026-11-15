@@ -1,5 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron';
-import { readFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { Readable } from 'node:stream';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerModelHandlers } from './ipc/models';
@@ -92,14 +94,63 @@ app.whenReady().then(() => {
     }
 
     try {
-      const data = await readFile(path.join(rendersRoot, name));
-      return new Response(data, {
-        headers: {
-          'Content-Type': 'audio/wav',
-          'Content-Length': String(data.length),
-          'Accept-Ranges': 'bytes',
-          'Access-Control-Allow-Origin': '*',
-        },
+      const filePath = path.join(rendersRoot, name);
+      const total = (await stat(filePath)).size;
+      const headers = {
+        'Content-Type': 'audio/wav',
+        'Accept-Ranges': 'bytes',
+        'Access-Control-Allow-Origin': '*',
+      };
+      const body = (start?: number, end?: number) =>
+        Readable.toWeb(
+          createReadStream(
+            filePath,
+            start === undefined ? undefined : { start, end },
+          ),
+        ) as unknown as ReadableStream;
+
+      // Media elements ask for byte ranges, especially while another render is
+      // keeping the machine busy. Answering with the full file makes the
+      // decoder restart from the beginning, so honour the range properly.
+      const range = request.headers.get('range');
+      const match = range?.match(/^bytes=(\d*)-(\d*)$/);
+
+      if (match) {
+        let start = match[1] ? Number(match[1]) : 0;
+        let end = match[2] ? Number(match[2]) : total - 1;
+
+        if (!match[1] && match[2]) {
+          start = Math.max(0, total - Number(match[2]));
+          end = total - 1;
+        }
+
+        if (
+          !Number.isFinite(start) ||
+          !Number.isFinite(end) ||
+          start > end ||
+          start >= total
+        ) {
+          return new Response(null, {
+            status: 416,
+            headers: { 'Content-Range': `bytes */${total}` },
+          });
+        }
+
+        end = Math.min(end, total - 1);
+
+        return new Response(body(start, end), {
+          status: 206,
+          headers: {
+            ...headers,
+            'Content-Length': String(end - start + 1),
+            'Content-Range': `bytes ${start}-${end}/${total}`,
+          },
+        });
+      }
+
+      return new Response(body(), {
+        status: 200,
+        headers: { ...headers, 'Content-Length': String(total) },
       });
     } catch {
       return new Response('Not found', { status: 404 });

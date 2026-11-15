@@ -128,23 +128,29 @@ class Engine:
         model = self.load(model_path)
         emit({"id": request_id, "type": "progress", "value": {"progress": 15}})
 
+        # Streaming gives the UI real movement instead of one jump at the end.
+        # Kokoro already yields per segment; give it sentence boundaries.
         if engine == "qwen3-tts":
             chunks = model.generate_voice_design(
                 text=script,
                 instruct=voice_prompt or "A natural voice.",
                 language=LANGUAGE_NAMES.get(language, "English"),
+                stream=True,
+                streaming_interval=1.0,
             )
         elif engine == "maya2":
             chunks = model.generate(
                 text=script,
                 voice=voice_name,
                 lang_code=language,
+                stream=True,
             )
         elif engine == "kokoro":
             chunks = model.generate(
                 text=script,
                 voice=voice_id,
                 speed=speed,
+                split_pattern=r"(?<=[.!?])\s+",
             )
         elif engine == "chatterbox":
             raise RuntimeError(
@@ -153,9 +159,16 @@ class Engine:
         else:
             raise RuntimeError(f"Unsupported engine: {engine}")
 
+        # A rough spoken length keeps progress honest between streamed chunks.
+        # Hindi reads a little slower than English; both estimates intentionally
+        # run long so the bar does not sit at 95% waiting for the last chunk.
+        words_per_second = 1.8 if language == "hi" else 2.2
+        expected_seconds = max(2.0, len(script.split()) / words_per_second)
+
         parts = []
         sample_rate = 24000
-        count = 0
+        generated_seconds = 0.0
+        last_progress = 15
 
         for chunk in chunks:
             if self.cancel.is_set():
@@ -165,18 +178,26 @@ class Engine:
             if audio.size:
                 parts.append(audio)
                 sample_rate = int(getattr(chunk, "sample_rate", sample_rate))
-                count += 1
-                emit(
-                    {
-                        "id": request_id,
-                        "type": "progress",
-                        "value": {"progress": min(92, 15 + count * 4)},
-                    }
+                generated_seconds += audio.size / sample_rate
+
+                progress = min(
+                    94,
+                    int(15 + 80 * min(1.0, generated_seconds / expected_seconds)),
                 )
+                if progress > last_progress:
+                    last_progress = progress
+                    emit(
+                        {
+                            "id": request_id,
+                            "type": "progress",
+                            "value": {"progress": progress},
+                        }
+                    )
 
         if not parts:
             raise RuntimeError("The model produced no audio.")
 
+        emit({"id": request_id, "type": "progress", "value": {"progress": 97}})
         audio = np.clip(np.concatenate(parts), -1.0, 1.0)
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         sf.write(output_path, audio, sample_rate)

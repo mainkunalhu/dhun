@@ -1,8 +1,13 @@
 <p align="center">
-  <img src="assets/brand/icon-rounded.png" alt="Dhun" width="112" height="112" />
+  <img src="assets/brand/icon-rounded.png" alt="" width="112" height="112" />
 </p>
 
-<h1 align="center">Dhun</h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark-dark.svg">
+    <img src="assets/brand/wordmark-light.svg" alt="Dhun" height="48">
+  </picture>
+</p>
 
 <p align="center">
   A local-first voiceover studio. One script, every voice, nothing leaves your machine.

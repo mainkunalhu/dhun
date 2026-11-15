@@ -35,6 +35,7 @@ const PlayerContext = createContext<PlayerValue | null>(null);
  */
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentIdRef = useRef<string | null>(null);
   const [current, setCurrent] = useState<PlayerTake | null>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -42,7 +43,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const audio = new Audio();
-    audio.preload = 'metadata';
+    audio.preload = 'auto';
+    audio.loop = false;
     audioRef.current = audio;
 
     const onTime = () => setTime(audio.currentTime);
@@ -54,12 +56,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
+    const onError = () => setPlaying(false);
 
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('loadedmetadata', onMeta);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
+    audio.addEventListener('error', onError);
 
     return () => {
       audio.pause();
@@ -68,35 +72,44 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('error', onError);
       audioRef.current = null;
     };
   }, []);
 
-  const play = useCallback(
-    (take: PlayerTake) => {
-      const audio = audioRef.current;
-      if (!audio) return;
+  const play = useCallback((take: PlayerTake) => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-      if (current?.id === take.id) {
-        if (audio.paused) void audio.play();
-        else audio.pause();
-        return;
+    // Compare against a ref, not React state: a fast second click can arrive
+    // before the state update and would otherwise reload the file from zero.
+    if (currentIdRef.current === take.id) {
+      if (audio.ended) {
+        audio.currentTime = 0;
+        setTime(0);
       }
+      if (audio.paused) void audio.play().catch(() => setPlaying(false));
+      else audio.pause();
+      return;
+    }
 
-      setCurrent(take);
-      setTime(0);
-      setDuration(take.durationMs / 1000);
-      audio.src = `dhun-media://renders/${take.id}.wav`;
-      audio.currentTime = 0;
-      void audio.play().catch(() => setPlaying(false));
-    },
-    [current],
-  );
+    currentIdRef.current = take.id;
+    setCurrent(take);
+    setTime(0);
+    setDuration(take.durationMs / 1000);
+    audio.src = `dhun-media://renders/${take.id}.wav`;
+    audio.load();
+    void audio.play().catch(() => setPlaying(false));
+  }, []);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
-    if (audio.paused) void audio.play();
+    if (audio.ended) {
+      audio.currentTime = 0;
+      setTime(0);
+    }
+    if (audio.paused) void audio.play().catch(() => setPlaying(false));
     else audio.pause();
   }, [current]);
 
@@ -114,6 +127,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeAttribute('src');
       audio.load();
     }
+    currentIdRef.current = null;
     setCurrent(null);
     setPlaying(false);
     setTime(0);
