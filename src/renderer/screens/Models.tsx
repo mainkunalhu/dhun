@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
 import {
   Box,
   Download,
@@ -14,7 +13,6 @@ import {
   Badge,
   Button,
   Card,
-  Chip,
   EmptyState,
   Field,
   IconButton,
@@ -23,7 +21,8 @@ import {
   Textarea,
 } from '../components/ui';
 import { Modal } from '../components/Modal';
-import { useModels } from '../lib/useModels';
+import { cn } from '../lib/cn';
+import { useModelsContext } from '../lib/models-context';
 
 type Filter = 'all' | 'installed' | 'ready';
 
@@ -54,11 +53,12 @@ function languageLabel(languages: string[]): string {
 function voiceLabel(model: ModelSummary): string {
   if (model.voiceMode === 'preset') return 'Preset voices';
   if (model.voiceMode === 'clone') return 'Voice cloning';
+  if (model.voiceMode === 'design') return 'Voice design';
   return 'Presets + cloning';
 }
 
 export function Models() {
-  const { models, loading, error, refresh } = useModels();
+  const { models, loading, error, refresh } = useModelsContext();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [deleting, setDeleting] = useState<ModelSummary | null>(null);
@@ -131,17 +131,8 @@ export function Models() {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-[56rem] flex-col gap-5 px-8 py-10">
-          <Link
-            to="/projects"
-            className="text-sm text-ink-soft transition-colors hover:text-ink-strong"
-          >
-            ← Projects
-          </Link>
-
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center text-ink-soft">
@@ -179,22 +170,31 @@ export function Models() {
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <Chip pressed={filter === 'all'} onClick={() => setFilter('all')}>
-                All
-              </Chip>
-              <Chip
-                pressed={filter === 'installed'}
-                onClick={() => setFilter('installed')}
-              >
-                Installed
-              </Chip>
-              <Chip
-                pressed={filter === 'ready'}
-                onClick={() => setFilter('ready')}
-              >
-                Ready
-              </Chip>
+            <div
+              className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-lg border border-line bg-surface p-1"
+              role="group"
+              aria-label="Filter models"
+            >
+              {(
+                [
+                  ['all', 'All'],
+                  ['installed', 'Installed'],
+                  ['ready', 'Ready'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={filter === value}
+                  onClick={() => setFilter(value)}
+                  className={cn(
+                    'h-8 rounded-md px-3.5 text-sm font-medium text-ink-soft transition-colors duration-150 hover:text-ink-strong',
+                    filter === value && 'bg-raised text-ink-strong shadow-1',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -266,9 +266,6 @@ export function Models() {
                           {model.installed ? (
                             <Badge tone="success">Installed</Badge>
                           ) : null}
-                          {model.engineStatus === 'planned' ? (
-                            <Badge tone="info">Coming soon</Badge>
-                          ) : null}
                         </div>
                         <p className="truncate font-mono text-xs text-ink-soft">
                           {model.repo}
@@ -309,7 +306,6 @@ export function Models() {
                         ) : (
                           <Button
                             size="sm"
-                            disabled={model.engineStatus !== 'ready'}
                             onClick={() =>
                               void run(() =>
                                 window.dhun.models.install(model.id),

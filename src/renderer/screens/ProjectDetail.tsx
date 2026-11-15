@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Folder, TriangleAlert } from 'lucide-react';
+import { Folder, TriangleAlert } from 'lucide-react';
 import type { Job, JobStatus } from '../../shared/job';
 import type { ProjectSettings, ProjectSummary } from '../../shared/project';
 import {
@@ -15,7 +15,7 @@ import {
 } from '../components/ui';
 import { formatRelative } from '../lib/format';
 import { useJobs } from '../lib/useJobs';
-import { useModels } from '../lib/useModels';
+import { useModelsContext } from '../lib/models-context';
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
@@ -106,7 +106,7 @@ function JobRow({
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { models, loading: modelsLoading } = useModels();
+  const { models, loading: modelsLoading } = useModelsContext();
   const { jobs, refresh: refreshJobs } = useJobs(id);
 
   const [project, setProject] = useState<ProjectSummary | null>(null);
@@ -308,18 +308,8 @@ export function ProjectDetail() {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
-
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-5 px-8 py-10">
-          <Link
-            to="/projects"
-            className="inline-flex items-center gap-1.5 text-sm text-ink-soft transition-colors hover:text-ink-strong"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Projects
-          </Link>
-
           {loading ? (
             <p className="mt-4 text-sm text-ink-soft">Opening project…</p>
           ) : !project ? (
@@ -423,9 +413,13 @@ export function ProjectDetail() {
                   <Field
                     label="Voice"
                     hint={
-                      selectedModel && selectedModel.voiceMode === 'clone'
-                        ? 'Cloned voices land with the voice library.'
-                        : undefined
+                      selectedVoice?.prompt
+                        ? selectedVoice.prompt.length > 140
+                          ? `${selectedVoice.prompt.slice(0, 137)}…`
+                          : selectedVoice.prompt
+                        : selectedModel?.voiceMode === 'clone'
+                          ? 'Cloned voices land with the voice library.'
+                          : undefined
                     }
                   >
                     <Select

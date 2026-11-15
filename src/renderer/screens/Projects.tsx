@@ -14,14 +14,7 @@ import appIcon from '../../../assets/brand/icon-rounded.png';
 import { cn } from '../lib/cn';
 import { formatRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
-import {
-  Button,
-  EmptyState,
-  Field,
-  IconButton,
-  Input,
-  buttonStyles,
-} from '../components/ui';
+import { Button, EmptyState, Field, IconButton, Input } from '../components/ui';
 import { Modal } from '../components/Modal';
 
 type DialogState =
@@ -356,8 +349,6 @@ export function Projects() {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <header className="h-11 shrink-0 border-b border-line [-webkit-app-region:drag]" />
-
       <div className="relative min-h-0 flex-1">
         <div
           className="h-full overflow-y-auto"
@@ -395,18 +386,13 @@ export function Projects() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Link to="/models" className={buttonStyles('ghost', 'lg')}>
-                      Models
-                    </Link>
-                    <Button
-                      size="lg"
-                      onClick={() => openDialog({ kind: 'create' })}
-                    >
-                      <Plus className="size-4" aria-hidden="true" />
-                      New project
-                    </Button>
-                  </div>
+                  <Button
+                    size="lg"
+                    onClick={() => openDialog({ kind: 'create' })}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    New project
+                  </Button>
                 </div>
 
                 {isEmpty || (error && projects.length === 0) ? null : (

@@ -3,6 +3,8 @@ export type ModelVoice = {
   name: string;
   language: string;
   gender?: 'female' | 'male';
+  /** Voice-design instruction or a short profile. */
+  prompt?: string;
 };
 
 export type CatalogModel = {
@@ -16,7 +18,7 @@ export type CatalogModel = {
   revision: string;
   params: string;
   languages: string[];
-  voiceMode: 'preset' | 'clone' | 'both';
+  voiceMode: 'preset' | 'clone' | 'design' | 'both';
   voices: ModelVoice[];
   license: string;
   approxSizeBytes: number;

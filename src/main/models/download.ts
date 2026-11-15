@@ -21,7 +21,11 @@ function isNeeded(filePath: string): boolean {
 
   if (filePath === '.gitattributes') return false;
   if (/^(README|LICENSE)/i.test(name)) return false;
-  if (/\.(md|png|jpe?g|webp|gif|svg|wav|mp3|h5|onnx)$/i.test(filePath)) {
+  if (
+    /\.(md|png|jpe?g|webp|gif|svg|wav|mp3|mp4|mov|webm|mkv|h5|onnx)$/i.test(
+      filePath,
+    )
+  ) {
     return false;
   }
   if (filePath.startsWith('original/') || filePath.startsWith('samples/')) {

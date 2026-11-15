@@ -46,6 +46,7 @@ function parseVoice(value: unknown, index: number): ModelVoice {
       value.gender === 'female' || value.gender === 'male'
         ? value.gender
         : undefined,
+    prompt: typeof value.prompt === 'string' ? value.prompt : undefined,
   };
 }
 
@@ -72,6 +73,7 @@ function parseModel(value: unknown): CatalogModel {
   const voiceMode =
     value.voiceMode === 'preset' ||
     value.voiceMode === 'clone' ||
+    value.voiceMode === 'design' ||
     value.voiceMode === 'both'
       ? value.voiceMode
       : 'preset';

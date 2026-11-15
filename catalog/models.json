@@ -10,66 +10,18 @@
       "repo": "mlx-community/Kokoro-82M-bf16",
       "revision": "main",
       "params": "82M",
-      "languages": [
-        "en",
-        "hi"
-      ],
+      "languages": ["en", "hi"],
       "voiceMode": "preset",
       "voices": [
-        {
-          "id": "af_heart",
-          "name": "Heart",
-          "language": "en",
-          "gender": "female"
-        },
-        {
-          "id": "af_bella",
-          "name": "Bella",
-          "language": "en",
-          "gender": "female"
-        },
-        {
-          "id": "am_michael",
-          "name": "Michael",
-          "language": "en",
-          "gender": "male"
-        },
-        {
-          "id": "bf_emma",
-          "name": "Emma",
-          "language": "en",
-          "gender": "female"
-        },
-        {
-          "id": "bm_george",
-          "name": "George",
-          "language": "en",
-          "gender": "male"
-        },
-        {
-          "id": "hf_alpha",
-          "name": "Alpha",
-          "language": "hi",
-          "gender": "female"
-        },
-        {
-          "id": "hf_beta",
-          "name": "Beta",
-          "language": "hi",
-          "gender": "female"
-        },
-        {
-          "id": "hm_omega",
-          "name": "Omega",
-          "language": "hi",
-          "gender": "male"
-        },
-        {
-          "id": "hm_psi",
-          "name": "Psi",
-          "language": "hi",
-          "gender": "male"
-        }
+        { "id": "af_heart", "name": "Heart", "language": "en", "gender": "female" },
+        { "id": "af_bella", "name": "Bella", "language": "en", "gender": "female" },
+        { "id": "am_michael", "name": "Michael", "language": "en", "gender": "male" },
+        { "id": "bf_emma", "name": "Emma", "language": "en", "gender": "female" },
+        { "id": "bm_george", "name": "George", "language": "en", "gender": "male" },
+        { "id": "hf_alpha", "name": "Alpha", "language": "hi", "gender": "female" },
+        { "id": "hf_beta", "name": "Beta", "language": "hi", "gender": "female" },
+        { "id": "hm_omega", "name": "Omega", "language": "hi", "gender": "male" },
+        { "id": "hm_psi", "name": "Psi", "language": "hi", "gender": "male" }
       ],
       "license": "Apache-2.0",
       "approxSizeBytes": 340000000,
@@ -115,7 +67,7 @@
       "license": "MIT",
       "approxSizeBytes": 2600000000,
       "minRamGb": 6,
-      "notes": "Clones a voice from 5\u201310 seconds of reference audio. Emotion control."
+      "notes": "Clones a voice from 5–10 seconds of reference audio. Emotion control."
     },
     {
       "id": "chatterbox-en",
@@ -126,9 +78,7 @@
       "repo": "mlx-community/chatterbox-fp16",
       "revision": "main",
       "params": "0.5B",
-      "languages": [
-        "en"
-      ],
+      "languages": ["en"],
       "voiceMode": "clone",
       "voices": [],
       "license": "MIT",
@@ -137,25 +87,218 @@
       "notes": "English-only Chatterbox with cloning and emotion control."
     },
     {
-      "id": "qwen3-tts-0-6b",
-      "name": "Qwen3-TTS 0.6B CustomVoice",
+      "id": "qwen3-tts-17b-voice-design-bf16",
+      "name": "Qwen3-TTS 1.7B VoiceDesign",
       "family": "Qwen3-TTS",
       "engine": "qwen3-tts",
-      "engineStatus": "planned",
-      "repo": "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit",
+      "engineStatus": "ready",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
       "revision": "main",
-      "params": "0.6B",
-      "languages": [
-        "en",
-        "zh",
-        "hi"
+      "params": "1.7B",
+      "languages": ["en"],
+      "voiceMode": "design",
+      "voices": [
+        {
+          "id": "female-young-upbeat",
+          "name": "Young upbeat (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A young American woman in her early twenties with a bright, high-energy voice. Fast, punchy delivery like a viral short-form video creator, crisp consonants and confident upward inflection."
+        },
+        {
+          "id": "female-warm-storyteller",
+          "name": "Warm storyteller (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A woman in her late twenties with a warm, slightly husky voice. Slow, intimate delivery as if telling a secret to one person, a soft laugh at the edges of her words."
+        },
+        {
+          "id": "female-crisp-british",
+          "name": "Crisp British (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A British woman in her thirties with a crisp, precise accent. Measured and slightly sardonic, dry wit, very clean articulation."
+        },
+        {
+          "id": "female-whisper-asmr",
+          "name": "Whisper ASMR (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A soft, breathy female voice speaking very close to the microphone in an intimate near-whisper. Calm, slow and airy."
+        },
+        {
+          "id": "female-authoritative",
+          "name": "Authoritative (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A polished woman in her forties with a neutral broadcast American accent. Authoritative, low and deliberate, like a documentary narrator."
+        },
+        {
+          "id": "male-hype-trailer",
+          "name": "Hype trailer (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A deep male voice in his thirties with cinematic trailer delivery. Punchy and dramatic, heavy emphasis on stressed words, a slight gravel in the low end."
+        },
+        {
+          "id": "male-friendly-explainer",
+          "name": "Friendly explainer (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A friendly American man in his late twenties. Conversational and upbeat, natural pacing, like a tech YouTuber explaining something exciting to a friend."
+        },
+        {
+          "id": "male-raspy-mature",
+          "name": "Raspy mature (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A mature man in his fifties with a raspy, gravelly voice. Slow and deliberate, low pitch, weathered and calm."
+        },
+        {
+          "id": "male-deadpan",
+          "name": "Deadpan (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A dry, deadpan male voice with flat intonation and comic timing. Understated, low energy, never sounds excited."
+        },
+        {
+          "id": "male-young-indian-english",
+          "name": "Young Indian English (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A young Indian man in his early twenties speaking English with a natural urban Indian accent. Casual, quick and playful."
+        }
       ],
-      "voiceMode": "both",
-      "voices": [],
       "license": "Apache-2.0",
-      "approxSizeBytes": 1900000000,
+      "approxSizeBytes": 4200000000,
+      "minRamGb": 6,
+      "notes": "Invent a voice from a written description. Best English quality."
+    },
+    {
+      "id": "qwen3-tts-17b-voice-design-6bit",
+      "name": "Qwen3-TTS 1.7B VoiceDesign (6-bit)",
+      "family": "Qwen3-TTS",
+      "engine": "qwen3-tts",
+      "engineStatus": "ready",
+      "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-6bit",
+      "revision": "main",
+      "params": "1.7B · 6-bit",
+      "languages": ["en"],
+      "voiceMode": "design",
+      "voices": [
+        {
+          "id": "female-young-upbeat",
+          "name": "Young upbeat (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A young American woman in her early twenties with a bright, high-energy voice. Fast, punchy delivery like a viral short-form video creator, crisp consonants and confident upward inflection."
+        },
+        {
+          "id": "female-warm-storyteller",
+          "name": "Warm storyteller (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A woman in her late twenties with a warm, slightly husky voice. Slow, intimate delivery as if telling a secret to one person, a soft laugh at the edges of her words."
+        },
+        {
+          "id": "female-crisp-british",
+          "name": "Crisp British (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A British woman in her thirties with a crisp, precise accent. Measured and slightly sardonic, dry wit, very clean articulation."
+        },
+        {
+          "id": "female-whisper-asmr",
+          "name": "Whisper ASMR (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A soft, breathy female voice speaking very close to the microphone in an intimate near-whisper. Calm, slow and airy."
+        },
+        {
+          "id": "female-authoritative",
+          "name": "Authoritative (F)",
+          "language": "en",
+          "gender": "female",
+          "prompt": "A polished woman in her forties with a neutral broadcast American accent. Authoritative, low and deliberate, like a documentary narrator."
+        },
+        {
+          "id": "male-hype-trailer",
+          "name": "Hype trailer (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A deep male voice in his thirties with cinematic trailer delivery. Punchy and dramatic, heavy emphasis on stressed words, a slight gravel in the low end."
+        },
+        {
+          "id": "male-friendly-explainer",
+          "name": "Friendly explainer (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A friendly American man in his late twenties. Conversational and upbeat, natural pacing, like a tech YouTuber explaining something exciting to a friend."
+        },
+        {
+          "id": "male-raspy-mature",
+          "name": "Raspy mature (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A mature man in his fifties with a raspy, gravelly voice. Slow and deliberate, low pitch, weathered and calm."
+        },
+        {
+          "id": "male-deadpan",
+          "name": "Deadpan (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A dry, deadpan male voice with flat intonation and comic timing. Understated, low energy, never sounds excited."
+        },
+        {
+          "id": "male-young-indian-english",
+          "name": "Young Indian English (M)",
+          "language": "en",
+          "gender": "male",
+          "prompt": "A young Indian man in his early twenties speaking English with a natural urban Indian accent. Casual, quick and playful."
+        }
+      ],
+      "license": "Apache-2.0",
+      "approxSizeBytes": 2500000000,
       "minRamGb": 4,
-      "notes": "Named voices and emotion control. Engine adapter not built yet."
+      "notes": "Same voice design at 6-bit. About twice as fast as bf16."
+    },
+    {
+      "id": "maya2-native",
+      "name": "Maya 2 Native",
+      "family": "Maya",
+      "engine": "maya2",
+      "engineStatus": "ready",
+      "repo": "maya-research/maya2-native",
+      "revision": "main",
+      "params": "4.7B",
+      "languages": ["hi"],
+      "voiceMode": "preset",
+      "voices": [
+        { "id": "ahana", "name": "Ahana", "language": "hi", "gender": "female", "prompt": "Young, bright, youthful." },
+        { "id": "vaidehi", "name": "Vaidehi", "language": "hi", "gender": "female", "prompt": "Adult, calm, gentle." },
+        { "id": "malini", "name": "Malini", "language": "hi", "gender": "female", "prompt": "Mature, steady narrator." },
+        { "id": "charvi", "name": "Charvi", "language": "hi", "gender": "female", "prompt": "Young, energetic, upbeat." },
+        { "id": "jahnavi", "name": "Jahnavi", "language": "hi", "gender": "female", "prompt": "Adult, warm, friendly." },
+        { "id": "nivedita", "name": "Nivedita", "language": "hi", "gender": "female", "prompt": "Adult, natural conversational." },
+        { "id": "ishwari", "name": "Ishwari", "language": "hi", "gender": "female", "prompt": "Adult, natural conversational." },
+        { "id": "vrinda", "name": "Vrinda", "language": "hi", "gender": "female", "prompt": "Young, natural conversational." },
+        { "id": "kayal", "name": "Kayal", "language": "hi", "gender": "female", "prompt": "Adult, natural conversational. No Hindi training data." },
+        { "id": "tanushree", "name": "Tanushree", "language": "hi", "gender": "female", "prompt": "Adult, natural conversational." },
+        { "id": "anirban", "name": "Anirban", "language": "hi", "gender": "male", "prompt": "Adult, steady narrator." },
+        { "id": "nakul", "name": "Nakul", "language": "hi", "gender": "male", "prompt": "Young, bright, youthful." },
+        { "id": "vasant", "name": "Vasant", "language": "hi", "gender": "male", "prompt": "Mature, steady narrator." },
+        { "id": "siddhant", "name": "Siddhant", "language": "hi", "gender": "male", "prompt": "Adult, clear, professional." },
+        { "id": "satvik", "name": "Satvik", "language": "hi", "gender": "male", "prompt": "Young, warm, friendly." },
+        { "id": "abhay", "name": "Abhay", "language": "hi", "gender": "male", "prompt": "Adult, natural conversational." },
+        { "id": "ritvik", "name": "Ritvik", "language": "hi", "gender": "male", "prompt": "Adult, natural conversational." },
+        { "id": "sreekar", "name": "Sreekar", "language": "hi", "gender": "male", "prompt": "Adult, natural conversational." },
+        { "id": "shaunak", "name": "Shaunak", "language": "hi", "gender": "male", "prompt": "Young, natural conversational." },
+        { "id": "akshat", "name": "Akshat", "language": "hi", "gender": "male", "prompt": "Adult, natural conversational." }
+      ],
+      "license": "Apache-2.0",
+      "approxSizeBytes": 4700000000,
+      "minRamGb": 6,
+      "notes": "20 built-in Indian voices, natively trained for Hindi."
     }
   ]
 }
