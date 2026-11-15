@@ -36,10 +36,58 @@ Chatterbox is listed for voice cloning; the cloning UI is not available yet.
 
 ## Install
 
-Download the latest macOS, Linux or Windows build from
-[Releases](../../releases/latest).
+Download the latest build from [Releases](../../releases/latest). Builds are
+unsigned, so your OS may ask for confirmation the first time.
 
-Voice generation uses MLX and currently runs on Apple Silicon.
+| Platform              | Download                  | Install                                            |
+| --------------------- | ------------------------- | -------------------------------------------------- |
+| macOS (Apple Silicon) | `Dhun-*-arm64.dmg`        | Open the DMG, drag **Dhun** into **Applications**. |
+| macOS (portable)      | `Dhun-darwin-arm64-*.zip` | Unzip and move **Dhun.app** into **Applications**. |
+| Linux (Debian/Ubuntu) | `dhun_*_amd64.deb`        | `sudo dpkg -i dhun_*_amd64.deb`                    |
+| Linux (portable)      | `Dhun-linux-x64-*.zip`    | Unzip, then run `./Dhun` from the folder.          |
+| Windows 10/11 (x64)   | `Dhun-win32-x64-*.zip`    | Unzip, keep the folder together, run `Dhun.exe`.   |
+
+### macOS
+
+1. Open the DMG and drag **Dhun** into **Applications**.
+2. If macOS blocks the unsigned app, right-click **Dhun** → **Open**, or go to
+   **System Settings → Privacy & Security → Open Anyway**.
+3. Voice generation requires Apple Silicon.
+
+### Linux
+
+Debian/Ubuntu:
+
+```bash
+sudo dpkg -i dhun_*_amd64.deb
+sudo apt -f install   # only if dependencies are missing
+```
+
+Then launch **Dhun** from your app menu.
+
+Portable:
+
+```bash
+unzip Dhun-linux-x64-*.zip
+cd Dhun-linux-x64
+chmod +x Dhun
+./Dhun
+```
+
+If the sandbox helper complains, install the `.deb` instead.
+
+### Windows
+
+1. Right-click the zip → **Extract All**.
+2. Open the extracted folder and run **`Dhun.exe`**.
+3. Keep the whole folder together — the executable needs the DLLs and
+   `resources` beside it.
+4. If SmartScreen appears, click **More info → Run anyway**.
+5. Optional: right-click `Dhun.exe` → **Send to → Desktop (create shortcut)**.
+
+Voice generation currently uses MLX and runs on Apple Silicon macOS. Windows and
+Linux builds open the studio and manage projects, but rendering is not available
+there yet.
 
 ## Development
 
