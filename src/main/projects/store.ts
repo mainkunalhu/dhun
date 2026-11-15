@@ -9,7 +9,12 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
-import type { Project, ProjectSummary } from '../../shared/project';
+import type { Job, NewJob } from '../../shared/job';
+import type {
+  Project,
+  ProjectSettings,
+  ProjectSummary,
+} from '../../shared/project';
 
 const PROJECT_FILE = 'project.json';
 const ID_PATTERN =
@@ -17,10 +22,36 @@ const ID_PATTERN =
 const MAX_NAME = 80;
 const MAX_SLUG = 48;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !value) {
+    throw new Error(`Invalid ${field}.`);
+  }
+  return value;
+}
+
+function readSettings(value: unknown): ProjectSettings {
+  const data = isRecord(value) ? value : {};
+
+  return {
+    modelId: typeof data.modelId === 'string' ? data.modelId : null,
+    voiceId: typeof data.voiceId === 'string' ? data.voiceId : null,
+    language: typeof data.language === 'string' ? data.language : 'en',
+    speed:
+      typeof data.speed === 'number' && Number.isFinite(data.speed)
+        ? data.speed
+        : 1,
+  };
+}
+
 /**
  * Projects live as plain folders on disk:
  *
  *   <root>/week-32-reel/project.json
+ *   <root>/week-32-reel/jobs/<jobId>.json
  *
  * The folder is named after the project, so renaming a project renames its
  * folder. The stable id lives inside project.json, so a folder rename never
@@ -55,6 +86,8 @@ export function createProjectStore(root: string) {
         typeof data.updatedAt === 'string'
           ? data.updatedAt
           : new Date(0).toISOString(),
+      script: typeof data.script === 'string' ? data.script : '',
+      settings: readSettings(data.settings),
     };
   }
 
@@ -75,7 +108,8 @@ export function createProjectStore(root: string) {
       if (!entry.isDirectory()) continue;
       try {
         const project = await readFolder(entry.name);
-        projects.push({ ...project, voices: 0, takes: 0 });
+        // The list never needs the script text; only get() returns it.
+        projects.push({ ...project, script: '', voices: 0, takes: 0 });
       } catch {
         // A folder without a readable project.json is not a project; skip it.
       }
@@ -166,6 +200,13 @@ export function createProjectStore(root: string) {
       favorite: false,
       createdAt: now,
       updatedAt: now,
+      script: '',
+      settings: {
+        modelId: null,
+        voiceId: null,
+        language: 'en',
+        speed: 1,
+      },
     };
 
     const folder = await uniqueFolder(slugify(clean, id));
@@ -203,6 +244,149 @@ export function createProjectStore(root: string) {
     await rm(folderPath(folder), { recursive: true, force: true });
   }
 
+  async function saveScript(id: string, script: string): Promise<Project> {
+    const { folder, project } = await locate(id);
+    project.script = typeof script === 'string' ? script : '';
+    project.updatedAt = new Date().toISOString();
+    await writeFolder(folder, project);
+    return project;
+  }
+
+  async function saveSettings(
+    id: string,
+    settings: ProjectSettings,
+  ): Promise<Project> {
+    const { folder, project } = await locate(id);
+    const next = readSettings(settings);
+    next.speed = Math.min(2, Math.max(0.5, next.speed));
+    project.settings = next;
+    project.updatedAt = new Date().toISOString();
+    await writeFolder(folder, project);
+    return project;
+  }
+
+  function jobsDir(folder: string): string {
+    return path.join(root, folder, 'jobs');
+  }
+
+  function parseJob(value: unknown): Job {
+    if (!isRecord(value)) throw new Error('Invalid job file.');
+
+    const status = value.status;
+    if (
+      status !== 'queued' &&
+      status !== 'running' &&
+      status !== 'done' &&
+      status !== 'failed' &&
+      status !== 'canceled'
+    ) {
+      throw new Error('Invalid job status.');
+    }
+
+    return {
+      id: asString(value.id, 'job id'),
+      projectId: asString(value.projectId, 'project id'),
+      modelId: asString(value.modelId, 'model id'),
+      voiceId: asString(value.voiceId, 'voice id'),
+      language: typeof value.language === 'string' ? value.language : 'en',
+      speed: typeof value.speed === 'number' ? value.speed : 1,
+      script: typeof value.script === 'string' ? value.script : '',
+      status,
+      progress: typeof value.progress === 'number' ? value.progress : 0,
+      error: typeof value.error === 'string' ? value.error : null,
+      createdAt: asString(value.createdAt, 'created at'),
+      updatedAt: asString(value.updatedAt, 'updated at'),
+    };
+  }
+
+  async function writeJob(folder: string, job: Job): Promise<void> {
+    await mkdir(jobsDir(folder), { recursive: true });
+    const file = path.join(jobsDir(folder), `${job.id}.json`);
+    const temp = `${file}.tmp`;
+    await writeFile(temp, `${JSON.stringify(job, null, 2)}\n`, 'utf8');
+    await rename(temp, file);
+  }
+
+  async function readJob(folder: string, id: string): Promise<Job> {
+    if (!ID_PATTERN.test(id)) throw new Error('Invalid job id.');
+    const raw = await readFile(
+      path.join(jobsDir(folder), `${id}.json`),
+      'utf8',
+    );
+    return parseJob(JSON.parse(raw));
+  }
+
+  async function listJobs(projectId: string): Promise<Job[]> {
+    const { folder } = await locate(projectId);
+    let entries: string[] = [];
+
+    try {
+      entries = await readdir(jobsDir(folder));
+    } catch {
+      return [];
+    }
+
+    const jobs: Job[] = [];
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      try {
+        jobs.push(
+          parseJob(
+            JSON.parse(
+              await readFile(path.join(jobsDir(folder), entry), 'utf8'),
+            ),
+          ),
+        );
+      } catch {
+        // Skip unreadable job files.
+      }
+    }
+
+    return jobs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async function createJob(projectId: string, input: NewJob): Promise<Job> {
+    const { folder } = await locate(projectId);
+    const script = typeof input.script === 'string' ? input.script : '';
+
+    if (!script.trim()) throw new Error('The script is empty.');
+    if (!input.modelId || !input.voiceId) {
+      throw new Error('Pick a model and a voice.');
+    }
+
+    const now = new Date().toISOString();
+    const job: Job = {
+      id: randomUUID(),
+      projectId,
+      modelId: input.modelId,
+      voiceId: input.voiceId,
+      language: input.language || 'en',
+      speed: Math.min(2, Math.max(0.5, input.speed || 1)),
+      script,
+      status: 'queued',
+      progress: 0,
+      error: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await writeJob(folder, job);
+    return job;
+  }
+
+  async function cancelJob(projectId: string, jobId: string): Promise<Job> {
+    const { folder } = await locate(projectId);
+    const job = await readJob(folder, jobId);
+
+    if (job.status === 'queued' || job.status === 'running') {
+      job.status = 'canceled';
+      job.updatedAt = new Date().toISOString();
+      await writeJob(folder, job);
+    }
+
+    return job;
+  }
+
   return {
     root,
     list,
@@ -211,5 +395,10 @@ export function createProjectStore(root: string) {
     rename: renameProject,
     setFavorite,
     remove,
+    saveScript,
+    saveSettings,
+    listJobs,
+    createJob,
+    cancelJob,
   };
 }

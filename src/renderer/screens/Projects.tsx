@@ -14,7 +14,14 @@ import appIcon from '../../../assets/brand/icon-rounded.png';
 import { cn } from '../lib/cn';
 import { formatRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
-import { Button, EmptyState, Field, IconButton, Input } from '../components/ui';
+import {
+  Button,
+  EmptyState,
+  Field,
+  IconButton,
+  Input,
+  buttonStyles,
+} from '../components/ui';
 import { Modal } from '../components/Modal';
 
 type DialogState =
@@ -388,13 +395,18 @@ export function Projects() {
                     </div>
                   </div>
 
-                  <Button
-                    size="lg"
-                    onClick={() => openDialog({ kind: 'create' })}
-                  >
-                    <Plus className="size-4" aria-hidden="true" />
-                    New project
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Link to="/models" className={buttonStyles('ghost', 'lg')}>
+                      Models
+                    </Link>
+                    <Button
+                      size="lg"
+                      onClick={() => openDialog({ kind: 'create' })}
+                    >
+                      <Plus className="size-4" aria-hidden="true" />
+                      New project
+                    </Button>
+                  </div>
                 </div>
 
                 {isEmpty || (error && projects.length === 0) ? null : (

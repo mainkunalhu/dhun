@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { registerModelHandlers } from './ipc/models';
 import { registerProjectHandlers } from './ipc/projects';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -64,6 +65,7 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   registerProjectHandlers();
+  registerModelHandlers();
 
   // In dev the Dock would otherwise show the generic Electron icon.
   if (process.platform === 'darwin' && !app.isPackaged) {
