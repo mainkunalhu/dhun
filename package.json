@@ -1,0 +1,58 @@
+{
+  "name": "dhun",
+  "productName": "Dhun",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-first voiceover studio: one script, every voice, English and Hinglish, entirely on your machine.",
+  "keywords": [],
+  "license": "MIT",
+  "author": {
+    "name": "mainkunalhu",
+    "email": "natwarlaluzumaki@gmail.com"
+  },
+  "main": ".vite/build/index.cjs",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "release": "electron-forge release",
+    "lint": "oxlint && oxfmt --check",
+    "lint:fix": "oxlint --fix && oxfmt --write",
+    "typecheck": "tsc --noEmit",
+    "icons": "uv run --with pillow python scripts/build-icons.py"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^8.0.1",
+    "@electron-forge/maker-deb": "^8.0.1",
+    "@electron-forge/maker-rpm": "^8.0.1",
+    "@electron-forge/maker-squirrel": "^8.0.1",
+    "@electron-forge/maker-zip": "^8.0.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^8.0.1",
+    "@electron-forge/plugin-fuses": "^8.0.1",
+    "@electron-forge/plugin-vite": "^8.0.1",
+    "@electron/fuses": "^2.1.3",
+    "@types/electron-squirrel-startup": "^1.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "45.3.2",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.93.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/noto-sans-devanagari": "^5.3.0",
+    "@tailwindcss/vite": "^4",
+    "clsx": "^2.1.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "lucide-react": "^1.73.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4"
+  }
+}

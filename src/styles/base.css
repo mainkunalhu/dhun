@@ -1,0 +1,111 @@
+/* ============================================================================
+   Dhun — base layer
+   Document defaults only. Every component is styled with Tailwind utilities in
+   React; this file exists for the rules utilities can't express: focus rings,
+   selection, scrollbars, and the Devanagari font switch.
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    /* App chrome is not a document: no accidental text selection. */
+    user-select: none;
+    cursor: default;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  a {
+    color: var(--dh-accent-text);
+    text-decoration: none;
+  }
+
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--dh-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--dh-accent-soft);
+    color: var(--dh-ink-strong);
+  }
+
+  /* Devanagari needs a little more size and a lot more leading than Latin at
+     the same optical weight. Scoped to the language, never global. */
+  :lang(hi) {
+    font-family: var(--dh-font-deva);
+    font-size: 1.06em;
+    line-height: 1.75;
+  }
+
+  /* Thin, quiet scrollbars that match the chrome. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--dh-line-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--dh-line);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--dh-line-strong);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

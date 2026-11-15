@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dhun</title>
+    <!-- Applies the saved theme before first paint. Keep the key in sync with
+         src/renderer/lib/useTheme.ts. -->
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('dhun.theme') === 'light' ? 'light' : 'dark';
+
+        // First run only: returning users skip the welcome screen. Keep the key
+        // in sync with ONBOARDED_KEY in src/renderer/screens/Splash.tsx.
+        if (
+          localStorage.getItem('dhun.onboarded') === 'true' &&
+          !window.location.hash
+        ) {
+          window.location.hash = '#/projects';
+        }
+      } catch (error) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
+  </head>
+
+  <body
+    class="h-full overflow-hidden bg-canvas font-sans text-sm text-ink antialiased"
+  >
+    <div id="root" class="h-full"></div>
+    <script type="module" src="/src/renderer/main.tsx"></script>
+  </body>
+</html>

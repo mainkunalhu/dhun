@@ -1,0 +1,161 @@
+/* ============================================================================
+   Dhun — token layer
+   ----------------------------------------------------------------------------
+   Theme: "studio at night".
+
+   A recording studio after hours: warm graphite chrome, one marigold accent
+   standing in for a lit VU meter, and warm paper for daylight.
+
+   Rules this file follows:
+   - Neutrals are a single warm ramp (HSL, hue 40) so lightness is the only
+     lever. Accent and semantic colors are OKLCH so chroma stays even.
+   - Dark is the default. Light is a full peer, defined in the same pass.
+   - Components read these variables only. No raw hex below this file.
+   - Contrast verified: body text >= 4.5:1, boundaries and focus >= 3:1 on
+     every surface, in both themes.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Type families ---------------------------------------------------- */
+  --dh-font-sans:
+    'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --dh-font-mono:
+    'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --dh-font-deva:
+    'Noto Sans Devanagari Variable', 'Kohinoor Devanagari',
+    'Devanagari Sangam MN', var(--dh-font-sans);
+
+  /* ---- Surfaces (warm graphite) ----------------------------------------- */
+  --dh-canvas: hsl(40 7% 6%); /* page                       #10100e */
+  --dh-surface: hsl(40 6% 9%); /* cards, panels              #181716 */
+  --dh-raised: hsl(40 5% 13%); /* menus, selected, hover     #23221f */
+  --dh-sunken: hsl(40 8% 4%); /* wells, tracks, inputs      #0b0a09 */
+
+  --dh-line: hsl(40 5% 17%); /* decorative separators      #2e2c29 */
+  --dh-line-strong: hsl(40 4% 40%); /* interactive boundaries     #6a6762 */
+  --dh-highlight: hsl(40 8% 24%); /* top edge of raised         #3f3c37 */
+
+  /* ---- Ink -------------------------------------------------------------- */
+  --dh-ink-strong: hsl(40 20% 95%); /* the one focal heading      #f5f3f0 */
+  --dh-ink: hsl(40 12% 84%); /* body                       #dbd8d1 */
+  --dh-ink-soft: hsl(40 8% 64%); /* metadata, helper           #aba69c */
+  --dh-ink-faint: hsl(40 6% 47%); /* disabled, decorative       #7f7a71 */
+
+  /* ---- Accent: marigold -------------------------------------------------- */
+  --dh-accent: oklch(0.8 0.145 72); /* fill                    #f7ad44 */
+  --dh-accent-hover: oklch(0.84 0.145 72);
+  --dh-accent-active: oklch(0.74 0.145 72);
+  --dh-accent-ink: hsl(38 60% 8%); /* label on accent fill     #211808 */
+  --dh-accent-text: oklch(0.8 0.145 72); /* links, selected text */
+  --dh-accent-soft: oklch(0.8 0.145 72 / 0.14);
+  --dh-accent-line: oklch(0.8 0.145 72 / 0.5);
+
+  /* ---- Semantic (state only, never decoration) --------------------------- */
+  --dh-success: oklch(0.76 0.14 152);
+  --dh-success-ink: hsl(150 40% 8%);
+  --dh-success-soft: oklch(0.76 0.14 152 / 0.14);
+
+  --dh-warning: oklch(0.83 0.13 85);
+  --dh-warning-ink: hsl(40 60% 8%);
+  --dh-warning-soft: oklch(0.83 0.13 85 / 0.14);
+
+  --dh-danger: oklch(0.7 0.17 27);
+  --dh-danger-ink: hsl(10 40% 8%);
+  --dh-danger-soft: oklch(0.7 0.17 27 / 0.14);
+
+  --dh-info: oklch(0.75 0.1 235);
+  --dh-info-ink: hsl(220 40% 8%);
+  --dh-info-soft: oklch(0.75 0.1 235 / 0.14);
+
+  /* ---- Overlay ----------------------------------------------------------- */
+  --dh-scrim: hsl(30 30% 2% / 0.7);
+
+  /* ---- Elevation --------------------------------------------------------- */
+  --dh-shadow-1:
+    inset 0 1px 0 hsl(40 40% 100% / 0.05), 0 1px 2px hsl(30 40% 2% / 0.55),
+    0 2px 8px hsl(30 40% 2% / 0.25);
+  --dh-shadow-2:
+    inset 0 1px 0 hsl(40 40% 100% / 0.07), 0 2px 4px hsl(30 40% 2% / 0.5),
+    0 10px 24px hsl(30 40% 2% / 0.38);
+  --dh-shadow-3:
+    inset 0 1px 0 hsl(40 40% 100% / 0.09), 0 6px 12px hsl(30 40% 2% / 0.5),
+    0 24px 56px hsl(30 40% 2% / 0.5);
+  --dh-shadow-inset:
+    inset 0 2px 5px hsl(30 40% 2% / 0.5), inset 0 -1px 0 hsl(40 40% 100% / 0.04);
+
+  /* ---- Motion ------------------------------------------------------------ */
+  --dh-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dh-fast: 120ms;
+  --dh-base: 180ms;
+}
+
+/* ============================================================================
+   Light theme — "daylight studio"
+   Warm paper, ink, the same marigold. Fills stay bright so the accent label
+   remains near-black; accent-as-text uses a darker step to clear 4.5:1.
+   ========================================================================== */
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* ---- Surfaces ---------------------------------------------------------- */
+  --dh-canvas: hsl(40 16% 92%); /* #eeece7 */
+  --dh-surface: hsl(40 22% 96%); /* #f7f6f3 */
+  --dh-raised: hsl(40 30% 100%); /* #ffffff */
+  --dh-sunken: hsl(40 14% 88%); /* #e5e2dc */
+
+  --dh-line: hsl(40 12% 85%); /* #dddad4 */
+  --dh-line-strong: hsl(40 6% 50%); /* #878378 */
+  --dh-highlight: hsl(0 0% 100%);
+
+  /* ---- Ink --------------------------------------------------------------- */
+  --dh-ink-strong: hsl(40 12% 7%); /* #141310 */
+  --dh-ink: hsl(40 7% 17%); /* #2e2c28 */
+  --dh-ink-soft: hsl(40 5% 38%); /* #66635c */
+  --dh-ink-faint: hsl(40 4% 52%); /* #898680 */
+
+  /* ---- Accent ------------------------------------------------------------ */
+  --dh-accent: oklch(0.8 0.145 72); /* bright fill, dark label */
+  --dh-accent-hover: oklch(0.84 0.145 72);
+  --dh-accent-active: oklch(0.74 0.145 72);
+  --dh-accent-ink: hsl(38 60% 8%);
+  --dh-accent-text: oklch(0.5 0.135 62); /* 4.6:1 on canvas */
+  --dh-accent-soft: oklch(0.72 0.14 66 / 0.18);
+  --dh-accent-line: oklch(0.5 0.14 64 / 0.6);
+
+  /* ---- Semantic ---------------------------------------------------------- */
+  --dh-success: oklch(0.52 0.13 152);
+  --dh-success-ink: hsl(0 0% 100%);
+  --dh-success-soft: oklch(0.52 0.13 152 / 0.12);
+
+  --dh-warning: oklch(0.5 0.13 80);
+  --dh-warning-ink: hsl(0 0% 100%);
+  --dh-warning-soft: oklch(0.6 0.13 80 / 0.16);
+
+  --dh-danger: oklch(0.55 0.19 27);
+  --dh-danger-ink: hsl(0 0% 100%);
+  --dh-danger-soft: oklch(0.55 0.19 27 / 0.1);
+
+  --dh-info: oklch(0.52 0.12 235);
+  --dh-info-ink: hsl(0 0% 100%);
+  --dh-info-soft: oklch(0.52 0.12 235 / 0.1);
+
+  /* ---- Overlay ----------------------------------------------------------- */
+  --dh-scrim: hsl(35 20% 20% / 0.28);
+
+  /* ---- Elevation: soft, wide, warm --------------------------------------- */
+  --dh-shadow-1:
+    inset 0 1px 0 hsl(0 0% 100% / 1), 0 1px 2px hsl(35 20% 25% / 0.08),
+    0 2px 8px hsl(35 20% 25% / 0.05);
+  --dh-shadow-2:
+    inset 0 1px 0 hsl(0 0% 100% / 1), 0 4px 10px hsl(35 20% 25% / 0.1),
+    0 14px 30px hsl(35 20% 25% / 0.07);
+  --dh-shadow-3:
+    inset 0 1px 0 hsl(0 0% 100% / 1), 0 10px 24px hsl(35 20% 25% / 0.12),
+    0 32px 64px hsl(35 20% 25% / 0.1);
+  --dh-shadow-inset:
+    inset 0 2px 4px hsl(35 20% 25% / 0.1), inset 0 -1px 0 hsl(0 0% 100% / 1);
+}
