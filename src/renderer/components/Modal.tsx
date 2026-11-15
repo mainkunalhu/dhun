@@ -34,22 +34,26 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative flex w-full max-w-[26rem] flex-col rounded-xl border border-line bg-raised p-5 shadow-3"
+        className="relative flex max-h-[calc(100vh-3rem)] w-full max-w-[26rem] flex-col overflow-hidden rounded-xl border border-line bg-raised shadow-3"
       >
-        <h2
-          id={titleId}
-          className="text-lg font-semibold tracking-tight text-ink-strong"
-        >
-          {title}
-        </h2>
+        <div className="shrink-0 px-5 pt-5">
+          <h2
+            id={titleId}
+            className="text-lg font-semibold tracking-tight text-ink-strong"
+          >
+            {title}
+          </h2>
 
-        {description ? (
-          <p className="mt-1 text-sm leading-[1.55] text-ink-soft">
-            {description}
-          </p>
-        ) : null}
+          {description ? (
+            <p className="mt-1 text-sm leading-[1.55] text-ink-soft">
+              {description}
+            </p>
+          ) : null}
+        </div>
 
-        <div className="mt-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          {children}
+        </div>
       </div>
     </div>
   );

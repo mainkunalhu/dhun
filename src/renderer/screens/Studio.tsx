@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import {
   AudioLines,
+  Disc3,
   Download,
+  Folder,
   FolderInput,
   Pause,
   Pencil,
   Play,
+  Search,
   Trash2,
   TriangleAlert,
   X,
@@ -168,6 +171,7 @@ export function Studio({
   const [moveTargets, setMoveTargets] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [moveQuery, setMoveQuery] = useState('');
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [renaming, setRenaming] = useState<Job | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -274,13 +278,17 @@ export function Studio({
       .list()
       .then((projects) => {
         if (!alive) return;
-        const targets = projects
-          .filter((item) => item.id !== projectId)
-          .map((item) => ({ id: item.id, name: item.name }));
+        const targets: Array<{ id: string; name: string }> = [];
 
         if (!library) {
           targets.push({ id: LIBRARY_PROJECT_ID, name: 'Library' });
         }
+
+        targets.push(
+          ...projects
+            .filter((item) => item.id !== projectId)
+            .map((item) => ({ id: item.id, name: item.name })),
+        );
 
         setMoveTargets(targets);
       })
@@ -322,6 +330,10 @@ export function Studio({
   const words = wordCount(script);
   const canGenerate = Boolean(
     project && script.trim() && selectedModel && selectedVoice && !generating,
+  );
+  const moveNeedle = moveQuery.trim().toLowerCase();
+  const visibleMoveTargets = moveTargets.filter((target) =>
+    target.name.toLowerCase().includes(moveNeedle),
   );
 
   const updateSettings = (patch: Partial<ProjectSettings>) => {
@@ -783,6 +795,7 @@ export function Studio({
                                     label="Move take"
                                     onClick={() => {
                                       setActionError(null);
+                                      setMoveQuery('');
                                       setMoving(job);
                                     }}
                                   >
@@ -862,22 +875,58 @@ export function Studio({
             if (!dialogPending) setMoving(null);
           }}
         >
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-3">
+            {moveTargets.length > 0 ? (
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-soft"
+                  aria-hidden="true"
+                />
+                <Input
+                  autoFocus
+                  type="search"
+                  value={moveQuery}
+                  onChange={(event) => setMoveQuery(event.target.value)}
+                  placeholder="Find a project"
+                  aria-label="Find a project"
+                  disabled={dialogPending}
+                  className="h-9 pl-8 text-sm"
+                />
+              </div>
+            ) : null}
+
+            <div className="-mx-1 flex max-h-64 flex-col gap-0.5 overflow-y-auto px-1">
               {moveTargets.length === 0 ? (
-                <p className="text-sm text-ink-soft">
+                <p className="px-2 py-2 text-sm text-ink-soft">
                   No other projects yet. Create one first.
                 </p>
+              ) : visibleMoveTargets.length === 0 ? (
+                <p className="px-2 py-2 text-sm text-ink-soft">
+                  No projects match that search.
+                </p>
               ) : (
-                moveTargets.map((target) => (
+                visibleMoveTargets.map((target) => (
                   <button
                     key={target.id}
                     type="button"
                     disabled={dialogPending}
                     onClick={() => void moveTake(target.id)}
-                    className="flex h-10 items-center rounded-md px-3 text-left text-sm text-ink transition-colors hover:bg-raised disabled:cursor-not-allowed disabled:text-ink-faint"
+                    className="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-ink transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:text-ink-faint"
                   >
-                    {target.name}
+                    {target.id === LIBRARY_PROJECT_ID ? (
+                      <Disc3
+                        className="size-4 shrink-0 text-ink-soft"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Folder
+                        className="size-4 shrink-0 text-ink-soft"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="min-w-0 flex-1 truncate">
+                      {target.name}
+                    </span>
                   </button>
                 ))
               )}
@@ -887,7 +936,7 @@ export function Studio({
               <p className="text-xs text-danger">{actionError}</p>
             ) : null}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end border-t border-line pt-3">
               <Button
                 variant="ghost"
                 disabled={dialogPending}

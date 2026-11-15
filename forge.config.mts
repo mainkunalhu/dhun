@@ -27,8 +27,12 @@ const config: ForgeConfig = {
   makers: [
     new MakerSquirrel({ setupIcon: brandIcon('icon.ico') }),
     new MakerZIP({}, ['darwin']),
-    new MakerRpm({ options: { icon: brandIcon('icon-512.png') } }),
-    new MakerDeb({ options: { icon: brandIcon('icon-512.png') } }),
+    new MakerRpm({
+      options: { icon: brandIcon('icon-512.png'), bin: 'Dhun' },
+    }),
+    new MakerDeb({
+      options: { icon: brandIcon('icon-512.png'), bin: 'Dhun' },
+    }),
   ],
   plugins: [
     new VitePlugin({
