@@ -1,4 +1,5 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol } from 'electron';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerModelHandlers } from './ipc/models';
@@ -10,6 +11,20 @@ if (started) {
 }
 
 app.setName('Dhun');
+
+// Lets the renderer play rendered takes without opening another app.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'dhun-media',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 /**
  * In dev the artwork lives in the repo; in a packaged build it is copied to
@@ -66,6 +81,30 @@ const createWindow = () => {
 app.whenReady().then(() => {
   registerProjectHandlers();
   registerModelHandlers();
+
+  const rendersRoot = path.join(app.getPath('userData'), 'renders');
+  protocol.handle('dhun-media', async (request) => {
+    const url = new URL(request.url);
+    const name = path.basename(decodeURIComponent(url.pathname));
+
+    if (!/^[0-9a-f-]{36}\.wav$/i.test(name)) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    try {
+      const data = await readFile(path.join(rendersRoot, name));
+      return new Response(data, {
+        headers: {
+          'Content-Type': 'audio/wav',
+          'Content-Length': String(data.length),
+          'Accept-Ranges': 'bytes',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
 
   // In dev the Dock would otherwise show the generic Electron icon.
   if (process.platform === 'darwin' && !app.isPackaged) {

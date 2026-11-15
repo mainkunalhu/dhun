@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import {
   AudioLines,
   Folder,
+  Pause,
   Play,
   RotateCcw,
   TriangleAlert,
@@ -16,6 +17,7 @@ import {
   Card,
   Field,
   IconButton,
+  Progress,
   SectionLabel,
   Select,
   Textarea,
@@ -107,6 +109,10 @@ export function ProjectDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [playbackMs, setPlaybackMs] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const lastSavedScript = useRef('');
   const lastSavedSettings = useRef('');
 
@@ -307,15 +313,28 @@ export function ProjectDetail() {
     }
   };
 
-  const playJob = async (jobId: string) => {
-    if (!project) return;
-    try {
-      await window.dhun.jobs.play(project.id, jobId);
-    } catch (cause) {
-      setActionError(
-        cause instanceof Error ? cause.message : 'Could not play that take.',
-      );
+  const togglePlay = (jobId: string) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playingId === jobId) {
+      audio.pause();
+      setPlayingId(null);
+      return;
     }
+
+    audio.src = `dhun-media://renders/${jobId}.wav`;
+    audio.currentTime = 0;
+    setPlaybackProgress(0);
+    setPlaybackMs(0);
+
+    void audio
+      .play()
+      .then(() => setPlayingId(jobId))
+      .catch(() => {
+        setActionError('Could not play that take.');
+        setPlayingId(null);
+      });
   };
 
   return (
@@ -381,7 +400,7 @@ export function ProjectDetail() {
                     onChange={(event) => setScript(event.target.value)}
                     placeholder="Paste your script here. Blank lines separate segments."
                     aria-label="Script"
-                    className="min-h-[22rem] resize-y border-line bg-canvas px-4 py-3 text-base leading-[1.7]"
+                    className="h-[22rem] resize-none overflow-y-auto border-line bg-canvas px-4 py-3 text-base leading-[1.7]"
                   />
 
                   <div className="flex items-center justify-between text-xs text-ink-soft">
@@ -548,23 +567,48 @@ export function ProjectDetail() {
                               {job.language.toUpperCase()} ·{' '}
                               {job.speed.toFixed(2)}×
                             </p>
+
+                            {job.status === 'running' ? (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Progress value={job.progress} />
+                                <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-soft">
+                                  {job.progress}%
+                                </span>
+                              </div>
+                            ) : null}
+
+                            {playingId === job.id ? (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Progress value={playbackProgress} />
+                                <span className="w-9 shrink-0 text-right text-xs tabular-nums text-ink-soft">
+                                  {formatDuration(playbackMs)}
+                                </span>
+                              </div>
+                            ) : null}
                           </div>
 
                           <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-ink-soft">
-                            {job.status === 'running'
-                              ? `${job.progress}%`
-                              : job.durationMs
-                                ? formatDuration(job.durationMs)
-                                : '—'}
+                            {job.durationMs
+                              ? formatDuration(job.durationMs)
+                              : '—'}
                           </span>
 
                           <div className="flex shrink-0 items-center gap-1">
                             {job.status === 'done' ? (
                               <IconButton
-                                label="Play take"
-                                onClick={() => void playJob(job.id)}
+                                label={
+                                  playingId === job.id
+                                    ? 'Pause take'
+                                    : 'Play take'
+                                }
+                                active={playingId === job.id}
+                                onClick={() => togglePlay(job.id)}
                               >
-                                <Play className="size-4" />
+                                {playingId === job.id ? (
+                                  <Pause className="size-4" />
+                                ) : (
+                                  <Play className="size-4" />
+                                )}
                               </IconButton>
                             ) : null}
 
@@ -598,6 +642,23 @@ export function ProjectDetail() {
           )}
         </div>
       </div>
+
+      <audio
+        ref={audioRef}
+        onTimeUpdate={(event) => {
+          const audio = event.currentTarget;
+          if (audio.duration) {
+            setPlaybackProgress((audio.currentTime / audio.duration) * 100);
+            setPlaybackMs(audio.currentTime * 1000);
+          }
+        }}
+        onEnded={() => {
+          setPlayingId(null);
+          setPlaybackProgress(0);
+          setPlaybackMs(0);
+        }}
+        className="hidden"
+      />
     </div>
   );
 }

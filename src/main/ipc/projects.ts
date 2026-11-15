@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { app, ipcMain, shell } from 'electron';
+import { app, ipcMain } from 'electron';
 import path from 'node:path';
 import type { NewJob } from '../../shared/job';
 import type { ProjectSettings } from '../../shared/project';
@@ -85,15 +85,6 @@ export function registerProjectHandlers(): void {
       return job;
     },
   );
-  ipcMain.handle(
-    'jobs:play',
-    async (_event, projectId: string, jobId: string) => {
-      const job = await store.getJob(projectId, jobId);
-      if (!job.outputPath) throw new Error('This take has no audio yet.');
-      await shell.openPath(job.outputPath);
-    },
-  );
-
   ipcMain.handle(
     'jobs:retry',
     async (_event, projectId: string, jobId: string) => {

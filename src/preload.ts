@@ -23,7 +23,6 @@ const jobs: JobsApi = {
     ipcRenderer.invoke('jobs:create', projectId, input),
   cancel: (projectId, jobId) =>
     ipcRenderer.invoke('jobs:cancel', projectId, jobId),
-  play: (projectId, jobId) => ipcRenderer.invoke('jobs:play', projectId, jobId),
   retry: (projectId, jobId) =>
     ipcRenderer.invoke('jobs:retry', projectId, jobId),
 };
