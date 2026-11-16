@@ -25,6 +25,12 @@ export function useJobs(projectId: string | undefined) {
   }, [refresh]);
 
   useEffect(() => {
+    return window.dhun.events.onJobsChanged((changedProjectId) => {
+      if (changedProjectId === projectId) void refresh();
+    });
+  }, [projectId, refresh]);
+
+  useEffect(() => {
     const active = jobs.some(
       (job) => job.status === 'queued' || job.status === 'running',
     );

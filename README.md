@@ -89,6 +89,35 @@ Voice generation currently uses MLX and runs on Apple Silicon macOS. Windows and
 Linux builds open the studio and manage projects, but rendering is not available
 there yet.
 
+## Agent access (MCP)
+
+Dhun runs a local MCP server while the desktop app is open:
+
+```text
+http://localhost:3291/mcp
+```
+
+Add it to OpenCode:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "dhun": {
+        "type": "remote",
+        "url": "http://localhost:3291/mcp",
+        "oauth": false,
+      },
+    },
+  },
+}
+```
+
+The agent can list projects, models and voices, generate voiceovers, wait for
+renders, rename/move/delete takes, and export finished audio. The server binds to
+loopback only and is available only while Dhun is running.
+
 ## Development
 
 ```bash

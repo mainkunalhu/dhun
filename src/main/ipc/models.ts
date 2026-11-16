@@ -1,17 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'node:path';
-import { createModelManager } from '../models/store';
+import { ipcMain } from 'electron';
+import type { DhunServices } from '../services';
 
-export function registerModelHandlers(): void {
-  const manager = createModelManager({
-    modelsRoot: path.join(app.getPath('userData'), 'models'),
-    localCatalogPath: path.join(app.getPath('userData'), 'models.local.json'),
-    onProgress: (progress) => {
-      for (const window of BrowserWindow.getAllWindows()) {
-        window.webContents.send('models:progress', progress);
-      }
-    },
-  });
+export function registerModelHandlers(services: DhunServices): void {
+  const manager = services.models;
 
   ipcMain.handle('models:list', () => manager.list());
   ipcMain.handle('models:install', (_event, id: string) => manager.install(id));

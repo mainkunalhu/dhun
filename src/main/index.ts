@@ -6,6 +6,8 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerModelHandlers } from './ipc/models';
 import { registerProjectHandlers } from './ipc/projects';
+import { startMcpServer } from './mcp/server';
+import { createDhunServices } from './services';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -81,10 +83,28 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  registerProjectHandlers();
-  registerModelHandlers();
+  const services = createDhunServices();
+  registerProjectHandlers(services);
+  registerModelHandlers(services);
 
-  const rendersRoot = path.join(app.getPath('userData'), 'renders');
+  let mcp: { close: () => void } | null = null;
+  try {
+    mcp = startMcpServer(services);
+  } catch (error) {
+    console.error('[mcp] Could not start the local MCP server.', error);
+  }
+
+  app.on('before-quit', () => {
+    mcp?.close();
+    services.sidecar.shutdown();
+  });
+
+  void (async () => {
+    await services.store.ensureLibrary();
+    await services.queue.recover();
+  })();
+
+  const rendersRoot = services.rendersRoot;
   protocol.handle('dhun-media', async (request) => {
     const url = new URL(request.url);
     const name = path.basename(decodeURIComponent(url.pathname));

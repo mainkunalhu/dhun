@@ -31,5 +31,11 @@ export function useProjects() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    return window.dhun.events.onProjectsChanged(() => {
+      void refresh();
+    });
+  }, [refresh]);
+
   return { projects, loading, error, refresh };
 }

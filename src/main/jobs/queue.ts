@@ -4,6 +4,7 @@ import type { Job } from '../../shared/job';
 import type { Sidecar } from '../engine/sidecar';
 import type { createModelManager } from '../models/store';
 import type { createProjectStore } from '../projects/store';
+import { notifyJobsChanged } from '../events';
 
 type ProjectStore = ReturnType<typeof createProjectStore>;
 type ModelManager = ReturnType<typeof createModelManager>;
@@ -79,6 +80,7 @@ export function createRenderQueue({
       progress: 1,
       error: null,
     });
+    notifyJobsChanged(projectId);
 
     try {
       const result = await sidecar.render(
@@ -104,6 +106,7 @@ export function createRenderQueue({
         outputPath: result.wavPath,
         durationMs: result.durationMs,
       });
+      notifyJobsChanged(projectId);
     } catch (error) {
       const canceled = (error as { code?: string }).code === 'CANCELED';
 
@@ -116,6 +119,7 @@ export function createRenderQueue({
             ? error.message
             : 'Render failed.',
       });
+      notifyJobsChanged(projectId);
     }
   }
 
@@ -140,5 +144,13 @@ export function createRenderQueue({
     }
   }
 
-  return { enqueue, cancel, recover };
+  function status(): {
+    running: boolean;
+    activeJobId: string | null;
+    queued: number;
+  } {
+    return { running, activeJobId, queued: queue.length };
+  }
+
+  return { enqueue, cancel, recover, status };
 }

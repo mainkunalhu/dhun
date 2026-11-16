@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { DhunEventsApi } from './shared/events';
 import type { JobsApi } from './shared/job';
 import type { ModelProgress, ModelsApi } from './shared/model';
 import type { ProjectsApi } from './shared/project';
@@ -50,4 +51,17 @@ const models: ModelsApi = {
   },
 };
 
-contextBridge.exposeInMainWorld('dhun', { projects, models, jobs });
+const events: DhunEventsApi = {
+  onProjectsChanged: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('dhun:projects-changed', handler);
+    return () => ipcRenderer.off('dhun:projects-changed', handler);
+  },
+  onJobsChanged: (callback) => {
+    const handler = (_event: unknown, projectId: string) => callback(projectId);
+    ipcRenderer.on('dhun:jobs-changed', handler);
+    return () => ipcRenderer.off('dhun:jobs-changed', handler);
+  },
+};
+
+contextBridge.exposeInMainWorld('dhun', { projects, models, jobs, events });
