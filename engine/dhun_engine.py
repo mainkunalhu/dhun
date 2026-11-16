@@ -22,9 +22,11 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import traceback
+from types import SimpleNamespace
 
 import numpy as np
 import soundfile as sf
@@ -47,6 +49,75 @@ LANGUAGE_NAMES = {
     "es": "Spanish",
     "it": "Italian",
 }
+
+
+def split_piece(piece: str, max_words: int) -> list[str]:
+    """Break an over-long sentence at commas so one call stays short."""
+    if len(piece.split()) <= max_words:
+        return [piece]
+
+    parts = [part.strip() for part in re.split(r"(?<=[,;—])\s+", piece)]
+    parts = [part for part in parts if part]
+
+    if len(parts) <= 1:
+        words = piece.split()
+        return [
+            " ".join(words[index : index + max_words])
+            for index in range(0, len(words), max_words)
+        ]
+
+    out: list[str] = []
+    current: list[str] = []
+    count = 0
+
+    for part in parts:
+        words = len(part.split())
+        if current and count + words > max_words:
+            out.append(" ".join(current))
+            current = [part]
+            count = words
+        else:
+            current.append(part)
+            count += words
+
+    if current:
+        out.append(" ".join(current))
+    return out
+
+
+def split_script(script: str, max_words: int = 24) -> list[str]:
+    """Split narration into sentence-sized calls.
+
+    Maya's EOS hazard accumulates across a long generation and can stop the
+    voice early even though max_tokens has not been reached. Short calls reset
+    that hazard, so the end of a long script is never silently dropped.
+    """
+    pieces = [
+        piece.strip()
+        for piece in re.split(r"(?<=[।.!?])\s+|\n+", script)
+        if piece.strip()
+    ]
+    expanded: list[str] = []
+    for piece in pieces:
+        expanded.extend(split_piece(piece, max_words))
+
+    out: list[str] = []
+    current: list[str] = []
+    count = 0
+
+    for piece in expanded:
+        words = len(piece.split())
+        if current and count + words > max_words:
+            out.append(" ".join(current))
+            current = [piece]
+            count = words
+        else:
+            current.append(piece)
+            count += words
+
+    if current:
+        out.append(" ".join(current))
+    return out
 
 
 def emit(payload: dict) -> None:
@@ -76,6 +147,23 @@ class Engine:
         self.model = model
         self.model_key = path
         return model
+
+    def maya_chunks(self, model, segments: list[str], voice_name: str, language: str):
+        """Yield Maya audio for each short segment, with a small breath between."""
+        for index, segment in enumerate(segments):
+            if self.cancel.is_set():
+                return
+            if index > 0:
+                yield SimpleNamespace(
+                    audio=np.zeros(int(24000 * 0.12), dtype=np.float32),
+                    sample_rate=24000,
+                )
+            yield from model.generate(
+                text=segment,
+                voice=voice_name,
+                lang_code=language,
+                stream=True,
+            )
 
     def run(self) -> None:
         while True:
@@ -139,12 +227,8 @@ class Engine:
                 streaming_interval=1.0,
             )
         elif engine == "maya2":
-            chunks = model.generate(
-                text=script,
-                voice=voice_name,
-                lang_code=language,
-                stream=True,
-            )
+            segments = split_script(script)
+            chunks = self.maya_chunks(model, segments, voice_name, language)
         elif engine == "kokoro":
             chunks = model.generate(
                 text=script,
@@ -162,7 +246,7 @@ class Engine:
         # A rough spoken length keeps progress honest between streamed chunks.
         # Hindi reads a little slower than English; both estimates intentionally
         # run long so the bar does not sit at 95% waiting for the last chunk.
-        words_per_second = 1.8 if language == "hi" else 2.2
+        words_per_second = 2.5 if language == "hi" else 2.7
         expected_seconds = max(2.0, len(script.split()) / words_per_second)
 
         parts = []

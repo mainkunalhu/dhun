@@ -1,7 +1,7 @@
 {
   "name": "dhun",
   "productName": "Dhun",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Local-first voiceover studio: one script, every voice, English and Hinglish, entirely on your machine.",
   "keywords": [],
